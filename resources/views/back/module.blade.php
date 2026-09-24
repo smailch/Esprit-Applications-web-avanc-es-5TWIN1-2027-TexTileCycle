@@ -39,7 +39,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" style="text-align:center;color:var(--muted);padding:40px">Aucun élément pour le moment — module {{ $pageTitle }} (statique)</td>
+                        <td colspan="5" style="text-align:center;color:var(--muted);padding:40px">Aucun vêtement enregistré pour le moment.</td>
                     </tr>
                 @endforelse
             </tbody>

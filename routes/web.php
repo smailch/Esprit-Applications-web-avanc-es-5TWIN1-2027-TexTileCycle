@@ -20,7 +20,7 @@ Route::name('front.')->group(function () {
 | Chaque module expose : app/Modules/{Module}/Routes/back.php
 |--------------------------------------------------------------------------
 */
-Route::prefix('admin')->name('back.')->group(function () {
+Route::prefix('admin')->name('back.')->middleware(['auth', 'backoffice', 'backoffice.route'])->group(function () {
     foreach (glob(app_path('Modules/*/Routes/back.php')) ?: [] as $routeFile) {
         require $routeFile;
     }
