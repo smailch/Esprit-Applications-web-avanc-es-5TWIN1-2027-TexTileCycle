@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # TexTileCycle-Laravel
 
 Plateforme web **TexTileCycle** — économie circulaire textile en Tunisie. Deux interfaces dans le même design system : **Front Office** (citoyens) et **Back Office** (ateliers, associations, administrateurs).
@@ -151,3 +152,6 @@ docs/ARCHITECTURE.md  # Maille architecturale et guide équipe
 ## Licence
 
 Projet académique / équipe — voir le dépôt pour les conditions d’utilisation. Le framework Laravel est sous [licence MIT](https://opensource.org/licenses/MIT).
+=======
+# Esprit-Applications-web-avanc-es-5TWIN1-2027-TexTileCycle
+>>>>>>> origin/main
