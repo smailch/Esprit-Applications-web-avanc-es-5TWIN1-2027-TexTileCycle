@@ -1,0 +1,171 @@
+Crée une application web complète "TexTileCycle" — plateforme d'économie circulaire textile en Tunisie — avec DEUX interfaces dans le même design system : un FRONT OFFICE (citoyens) et un BACK OFFICE (ateliers, associations, admin).
+
+══════════════════════════════════════
+ CONTEXTE PROJET
+══════════════════════════════════════
+
+TexTileCycle met en relation :
+- Citoyens (déclarer vêtements, prendre RDV, faire des dons)
+- Ateliers de réparation (gérer profil, services, planning)
+- Associations caritatives (publier besoins, valider dons)
+- Administrateurs (modération, statistiques, impact écologique)
+
+Stack cible : Laravel 12 + Blade (structure HTML claire, réutilisable)
+Langue : FRANÇAIS partout
+Contenu réaliste textile/écologie — pas de lorem ipsum
+
+══════════════════════════════════════
+ DESIGN SYSTEM COMMUN
+══════════════════════════════════════
+
+- Couleur principale : vert #2E7D32
+- Secondaires : blanc, gris #F5F5F5, vert clair #E8F5E9
+- Typographie : Inter ou similaire
+- Style : moderne, green-tech, professionnel, accessible
+- Mobile-first, responsive
+- Icônes : Lucide React
+- Coins arrondis (8–12px), ombres légères, espacements aérés
+- Badges statut colorés cohérents sur tout le site :
+  • en_attente (orange)
+  • en_reparation (bleu)
+  • repare (vert)
+  • donne (violet)
+  • recycle (gris)
+  • confirme / annule / termine (RDV)
+  • accepte / refuse (dons)
+
+══════════════════════════════════════
+ PARTIE 1 — FRONT OFFICE (CITOYENS)
+══════════════════════════════════════
+
+Layout front : header sticky + main + footer (PAS de sidebar)
+
+Header :
+- Logo "TexTileCycle" (feuille + textile)
+- Nav : Accueil | Ateliers | Associations | Dons | Connexion | Inscription (bouton vert)
+
+── Page Accueil (Landing) ──
+1. Hero : titre "Donnez une seconde vie à vos vêtements", sous-titre, 2 CTA ("Déclarer un vêtement", "Trouver un atelier")
+2. Section "Comment ça marche" — 4 étapes visuelles : Déclarer → Réparer ou Donner → Suivre le parcours → Mesurer l'impact
+3. Section statistiques : 1 240 vêtements sauvés | 856 réparations | 384 dons | 2,3 t CO₂ évité
+4. Section carte ateliers (placeholder carte Leaflet avec pins)
+5. Section 3 cards avantages (Économie circulaire, Ateliers locaux, Impact mesurable)
+6. Footer : liens, contact, réseaux, copyright
+
+── Page Connexion / Inscription ──
+- Formulaire centré, card blanche
+- Champs : nom, email, mot de passe, rôle (citoyen)
+- Validation inline, messages erreur en français
+
+── Page "Mes vêtements" (citoyen connecté) ──
+- Grille de cards vêtements : photo, type, taille, état, badge statut
+- Bouton "+ Déclarer un vêtement"
+- Modal formulaire avancé avec validation :
+  type (select), taille (select), état (radio), matière, description (textarea), upload photo (drag & drop)
+- Bandeau suggestion IA simulée : "Pantalon denim, état abîmé — Action recommandée : Réparer"
+- Timeline cycle de vie sous chaque card (CycleVieEvent)
+- Actions : Voir, Modifier, Supprimer
+
+── Page Carte Ateliers ──
+- Carte interactive (placeholder) + liste latérale ateliers
+- Cards atelier : nom, distance, note ★, spécialité, bouton "Prendre RDV"
+- Bandeau IA : "Atelier Couture Plus — 95% — Spécialiste Denim, à 1,2 km"
+
+── Page Prise de RDV ──
+- Formulaire : sélection vêtement, atelier, service, date/heure, commentaire
+- Validation champs + suggestion IA créneau : "Mercredi 14h — 30 min — faible affluence"
+- Calendrier visuel des créneaux disponibles
+
+── Page Proposer un Don ──
+- Formulaire : vêtement, association cible, message
+- Cards associations avec score matching IA : "Solidarité Mode — 98% — Recherche pulls taille L"
+- Statuts don : en_attente, accepte, refuse
+
+══════════════════════════════════════
+ PARTIE 2 — BACK OFFICE (ATELIER / ASSO / ADMIN)
+══════════════════════════════════════
+
+Layout back : sidebar fixe gauche + header top + zone contenu (PAS le même layout que le front)
+
+Sidebar (navigation) :
+- Logo TexTileCycle compact
+- Menu selon rôle affiché :
+  • Dashboard
+  • Vêtements
+  • Ateliers & Services
+  • Rendez-vous / Planning
+  • Dons
+  • Associations
+  • Signalements (admin)
+  • Statistiques & Impact (admin)
+  • Paramètres
+- Item actif surligné vert
+- Collapsible sur mobile
+
+Header top :
+- Breadcrumb
+- Barre recherche
+- Icône notifications (badge)
+- Avatar + nom rôle ("Atelier Couture Plus" / "Admin")
+
+── Dashboard ──
+- 4 KPI cards : Vêtements déclarés | Réparations | Dons validés | CO₂ évité (kg)
+- Graphique placeholder évolution mensuelle (Chart.js style)
+- Table "Activité récente" (5 dernières actions)
+- Widget IA admin : "Tendance détectée : +15% réparations ce mois"
+
+── Gestion Vêtements ──
+- Data table : Photo miniature | Type | Taille | État | Statut badge | Propriétaire | Date | Actions (✏️ 🗑️)
+- Filtres : statut, type, date
+- Bouton "Ajouter" → modal formulaire CRUD complet
+
+── Gestion Ateliers & Services ──
+- Table ateliers : Nom | Adresse | Note | Statut | Actions
+- Modal formulaire atelier : nom, description, adresse, téléphone, horaires (JSON), lat/lng
+- Sous-section Services : table nom | prix | durée | actions
+- Formulaire service avec validation
+
+── Planning Rendez-vous ──
+- Vue calendrier hebdomadaire + liste RDV
+- Table : Vêtement | Atelier | Date | Durée | Statut badge | Actions (Confirmer, Annuler)
+- Modal création/édition RDV avec validation anti-chevauchement
+
+── Gestion Dons ──
+- Table : Vêtement | Association | Donateur | Score IA | Statut | Actions (Accepter ✓ / Refuser ✗)
+- Panel besoins association (types, tailles, quantités)
+
+── Signalements (Admin) ──
+- Table : Type | Cible | Motif | Auteur | Statut | Actions (Traiter, Rejeter)
+- Modal traitement avec commentaire admin
+
+── Statistiques & Impact Écologique (Admin) ──
+- Graphiques : vêtements sauvés, CO₂ évité, eau économisée
+- Table périodes avec métriques agrégées
+- Widget IA : détection anomalies + prévisions
+
+══════════════════════════════════════
+ COMPOSANTS PARTAGÉS (DESIGN SYSTEM)
+══════════════════════════════════════
+
+Inclure et réutiliser sur front ET back :
+- Boutons : primary (vert), secondary (outline), danger (rouge), ghost
+- Inputs : text, select, textarea, file upload, date picker — tous avec label + message erreur
+- Cards, modals, toasts (succès/erreur)
+- Badges statut (couleurs cohérentes)
+- Data tables avec pagination et tri
+- Empty states ("Aucun vêtement déclaré")
+- Loading skeletons
+- Breadcrumb (back office)
+
+══════════════════════════════════════
+ LIVRABLE ATTENDU
+══════════════════════════════════════
+
+Génère les deux interfaces complètes dans un seul projet :
+1. Navigation possible entre pages front (landing → mes vêtements → carte → RDV → don)
+2. Navigation possible entre pages back (dashboard → chaque module CRUD)
+3. Même identité visuelle TexTileCycle (#2E7D32) sur les deux
+4. Structure HTML sémantique claire (header, nav, main, aside, footer) facilement convertible en templates Blade Laravel
+5. Tous les textes en français
+6. Responsive desktop + mobile
+7. Look professionnel type SaaS green-tech (inspiré Linear/Vercel mais thème écologique)
