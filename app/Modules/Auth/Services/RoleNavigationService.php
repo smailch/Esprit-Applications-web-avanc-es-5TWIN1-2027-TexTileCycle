@@ -44,7 +44,9 @@ class RoleNavigationService
                 'back.dashboard',
                 'back.vetements',
                 'back.ateliers',
+                'back.ateliers.*',
                 'back.rdv',
+                'back.rdv.*',
                 'back.parametres',
             ],
             User::ROLE_ASSOCIATION => [
