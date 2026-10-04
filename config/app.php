@@ -173,6 +173,8 @@ return [
          */
         App\Modules\Auth\Providers\AuthModuleServiceProvider::class,
         App\Modules\Vetements\Providers\VetementsModuleServiceProvider::class,
+        App\Modules\Ateliers\Providers\AteliersModuleServiceProvider::class,
+        App\Modules\RendezVous\Providers\RendezVousModuleServiceProvider::class,
 
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
