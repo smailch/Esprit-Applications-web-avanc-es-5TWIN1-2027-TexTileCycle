@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'mysql'),
+    'default' => env('DB_CONNECTION', 'mongodb'),
 
     /*
     |--------------------------------------------------------------------------
@@ -89,6 +89,23 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
+        ],
+
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'dsn' => env('MONGODB_URI'),
+            'database' => env('MONGODB_DATABASE', 'textilecycle'),
+            'options' => [
+                'appName' => env('MONGODB_APP_NAME', 'TexTileCycle'),
+            ],
+            'driver_options' => array_filter([
+                'tlsCAFile' => env(
+                    'MONGODB_TLS_CA_FILE',
+                    file_exists(storage_path('certs/cacert.pem'))
+                        ? storage_path('certs/cacert.pem')
+                        : null
+                ),
+            ]),
         ],
 
     ],

@@ -171,6 +171,9 @@ return [
         /*
          * Application Service Providers...
          */
+        App\Modules\Auth\Providers\AuthModuleServiceProvider::class,
+        App\Modules\Vetements\Providers\VetementsModuleServiceProvider::class,
+
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,

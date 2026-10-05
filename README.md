@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # TexTileCycle-Laravel
 
 Plateforme web **TexTileCycle** — économie circulaire textile en Tunisie. Deux interfaces dans le même design system : **Front Office** (citoyens) et **Back Office** (ateliers, associations, administrateurs).
@@ -16,6 +15,7 @@ Ce projet ne part pas d’une page blanche : il s’appuie sur un socle Laravel 
 | Framework | **Laravel 9** | Routing, vues, auth, BDD |
 | Vues | **Blade** | Front + back office, composants réutilisables |
 | Structure | **Modules métier** (`app/Modules/`) | Travail collaboratif par domaine |
+| Base de données | **MongoDB Atlas** | Collection `users` + modules métier (`mongodb/laravel-mongodb`) |
 | API (prévu) | **Laravel Sanctum** | Authentification API |
 | Styles | **`public/css/textilecycle.css`** | Design system vert `#2E7D32` |
 | Langue | **Français** | Interface et contenus |
@@ -26,9 +26,9 @@ Architecture détaillée (diagrammes, modules, conventions équipe) : **[docs/AR
 
 ## Prérequis
 
-- **PHP** ≥ 8.0 (extensions : `openssl`, `pdo`, `mbstring`, `tokenizer`, `xml`, `ctype`, `json`, `bcmath`)
+- **PHP** ≥ 8.0 (extensions : `openssl`, `mbstring`, `tokenizer`, `xml`, `ctype`, `json`, **`mongodb`**)
 - **Composer** 2.x
-- **MySQL** (ou MariaDB) — optionnel pour la phase actuelle (pages démo)
+- **Cluster MongoDB Atlas** (URI dans `.env`)
 - **Git**
 
 ---
@@ -66,13 +66,24 @@ Ajuster au minimum dans `.env` :
 APP_NAME=TexTileCycle
 APP_URL=http://127.0.0.1:8000
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=textilecycle
-DB_USERNAME=root
-DB_PASSWORD=
+DB_CONNECTION=mongodb
+MONGODB_URI=mongodb+srv://USER:PASSWORD@textilecycle.tyxmjeh.mongodb.net/textilecycle?retryWrites=true&w=majority&appName=TexTileCycle
+MONGODB_DATABASE=textilecycle
+
+ADMIN_EMAIL=admin@textilecycle.tn
+ADMIN_PASSWORD=ChangeMe123!
 ```
+
+> Ne commitez jamais le fichier `.env`. Créez un utilisateur MongoDB dédié dans Atlas et limitez les IP autorisées.
+
+### Extension PHP `mongodb` (XAMPP / Windows)
+
+1. Téléchargez `php_mongodb.dll` pour **PHP 8.0 TS x64** (PECL / MongoDB).
+2. Copiez le DLL dans `C:\xampp\php\ext\`.
+3. Dans `C:\xampp\php\php.ini`, ajoutez : `extension=mongodb`
+4. Vérifiez : `php -m | findstr mongodb`
+
+Sans cette extension, `composer install` peut passer avec `--ignore-platform-req=ext-mongodb`, mais **Laravel ne pourra pas se connecter à Atlas**.
 
 ### 4. Clé d’application
 
@@ -80,11 +91,16 @@ DB_PASSWORD=
 php artisan key:generate
 ```
 
-### 5. Base de données (quand les migrations métier seront prêtes)
+### 5. MongoDB — index + compte admin
 
 ```bash
 php artisan migrate
+php artisan db:seed
 ```
+
+- **Inscription citoyen :** `/inscription`
+- **Connexion :** `/connexion`
+- **Gestion utilisateurs (admin) :** `/admin/utilisateurs` (rôle `admin`)
 
 ### 6. Lancer le serveur de développement
 
@@ -152,6 +168,3 @@ docs/ARCHITECTURE.md  # Maille architecturale et guide équipe
 ## Licence
 
 Projet académique / équipe — voir le dépôt pour les conditions d’utilisation. Le framework Laravel est sous [licence MIT](https://opensource.org/licenses/MIT).
-=======
-# Esprit-Applications-web-avanc-es-5TWIN1-2027-TexTileCycle
->>>>>>> origin/main
