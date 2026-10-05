@@ -13,29 +13,12 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * Modèles en mémoire (jamais sauvegardés) pour les tests du module RendezVous.
  * Horloge figée au lundi 5 octobre 2026, 10:00 heure de Tunis.
+ *
+ * La classe utilisatrice doit implémenter IdentifiantsRendezVous
+ * (constantes ID_* et NOM_PIEGE référencées via self::).
  */
 trait FabriqueRendezVous
 {
-    protected const ID_CITOYEN = '652f000000000000000000c1';
-
-    protected const ID_COMPTE_ATELIER = '652f000000000000000000c2';
-
-    protected const ID_ATELIER = '652f000000000000000000a1';
-
-    protected const ID_AUTRE_ATELIER = '652f000000000000000000a2';
-
-    protected const ID_SERVICE = '652f000000000000000000b1';
-
-    protected const ID_SERVICE_2 = '652f000000000000000000b2';
-
-    protected const ID_SERVICE_ETRANGER = '652f000000000000000000b9';
-
-    protected const ID_VETEMENT = '652f000000000000000000e1';
-
-    protected const ID_RDV = '652f000000000000000000f1';
-
-    protected const NOM_PIEGE = 'Couture <script>alert(1)</script> Atelier';
-
     protected function figerHorloge(string $moment = '2026-10-05 10:00'): void
     {
         CarbonImmutable::setTestNow(CarbonImmutable::parse($moment, Atelier::FUSEAU_HORAIRE));

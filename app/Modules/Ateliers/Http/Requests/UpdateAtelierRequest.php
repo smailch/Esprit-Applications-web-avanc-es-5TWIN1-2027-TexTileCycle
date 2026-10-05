@@ -18,11 +18,12 @@ class UpdateAtelierRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'user_id' => $this->userIdRules($this->atelierId()),
-            ...$this->atelierFieldRules(),
-            'statut' => ['required', Rule::in(Atelier::STATUTS)],
-        ];
+        // array_merge plutôt que [...$tableau] : le dépaquetage à clés chaînes exige PHP 8.1 (projet : ^8.0).
+        return array_merge(
+            ['user_id' => $this->userIdRules($this->atelierId())],
+            $this->atelierFieldRules(),
+            ['statut' => ['required', Rule::in(Atelier::STATUTS)]],
+        );
     }
 
     public function messages(): array

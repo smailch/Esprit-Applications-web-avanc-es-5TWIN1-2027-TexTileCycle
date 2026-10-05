@@ -14,12 +14,13 @@ use Mockery;
 use Mockery\MockInterface;
 use Tests\Concerns\BlocksRemoteMongo;
 use Tests\Concerns\FabriqueRendezVous;
+use Tests\Concerns\IdentifiantsRendezVous;
 use Tests\TestCase;
 
 /**
  * Règles métier de RendezVousService. Les accès base (protégés) sont simulés.
  */
-class RendezVousServiceTest extends TestCase
+class RendezVousServiceTest extends TestCase implements IdentifiantsRendezVous
 {
     use BlocksRemoteMongo;
     use FabriqueRendezVous;

@@ -16,13 +16,14 @@ use Mockery;
 use Mockery\MockInterface;
 use Tests\Concerns\BlocksRemoteMongo;
 use Tests\Concerns\FabriqueRendezVous;
+use Tests\Concerns\IdentifiantsRendezVous;
 use Tests\TestCase;
 
 /**
  * Back office des rendez-vous : AtelierService et RendezVousService sont simulés
  * (sauf la logique de transition, réelle avec l'enregistrement simulé).
  */
-class RendezVousBackTest extends TestCase
+class RendezVousBackTest extends TestCase implements IdentifiantsRendezVous
 {
     use BlocksRemoteMongo;
     use FabriqueRendezVous;

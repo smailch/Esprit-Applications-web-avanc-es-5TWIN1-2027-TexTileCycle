@@ -14,13 +14,14 @@ use Mockery;
 use Mockery\MockInterface;
 use Tests\Concerns\BlocksRemoteMongo;
 use Tests\Concerns\FabriqueRendezVous;
+use Tests\Concerns\IdentifiantsRendezVous;
 use Tests\TestCase;
 
 /**
  * Prise de RDV depuis un atelier : rendu réel (routes, FormRequest, Blade) avec AtelierService
  * et les accès base de RendezVousService simulés. Aucune lecture ni écriture Mongo.
  */
-class RendezVousFrontTest extends TestCase
+class RendezVousFrontTest extends TestCase implements IdentifiantsRendezVous
 {
     use BlocksRemoteMongo;
     use FabriqueRendezVous;
