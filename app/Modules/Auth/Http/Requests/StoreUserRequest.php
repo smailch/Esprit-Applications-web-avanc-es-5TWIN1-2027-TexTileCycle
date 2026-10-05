@@ -13,6 +13,13 @@ class StoreUserRequest extends FormRequest
         return auth()->check() && auth()->user()->isAdmin();
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => mb_strtolower(trim($this->input('email')))]);
+        }
+    }
+
     public function rules(): array
     {
         return [

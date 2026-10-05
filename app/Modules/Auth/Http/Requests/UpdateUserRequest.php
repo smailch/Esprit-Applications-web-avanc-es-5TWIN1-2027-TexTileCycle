@@ -13,10 +13,18 @@ class UpdateUserRequest extends FormRequest
         return auth()->check() && auth()->user()->isAdmin();
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => mb_strtolower(trim($this->input('email')))]);
+        }
+    }
+
     public function rules(): array
     {
-        /** @var User|null $user */
+        // Pas de route model binding : {user} arrive en chaîne d'ObjectId (le builder Mongo la convertit pour _id).
         $user = $this->route('user');
+        $userId = $user instanceof User ? $user->getKey() : $user;
 
         return [
             'name' => ['required', 'string', 'max:120'],
@@ -24,7 +32,7 @@ class UpdateUserRequest extends FormRequest
                 'required',
                 'email',
                 'max:190',
-                Rule::unique(User::class, 'email')->ignore($user?->getKey(), '_id'),
+                Rule::unique(User::class, 'email')->ignore($userId !== null ? (string) $userId : null, '_id'),
             ],
             'password' => ['nullable', 'string', 'min:8'],
             'role' => ['required', Rule::in(User::ROLES)],
