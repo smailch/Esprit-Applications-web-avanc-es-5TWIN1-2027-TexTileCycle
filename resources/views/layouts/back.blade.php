@@ -1,35 +1,46 @@
 @extends('layouts.app')
 
 @section('body')
+@php
+    $user = $backUser ?? auth()->user();
+    $canParametres = $user && \App\Modules\Auth\Services\RoleNavigationService::canAccessRoute($user, 'back.parametres');
+@endphp
 <div class="back-shell">
     <aside class="sidebar">
         <x-logo />
-        <div class="role-switch">
-            <div class="role-avatar">C</div>
-            <div>
-                <b>Couture Plus</b>
-                <small>Atelier partenaire</small>
+        @if($user)
+            <div class="role-switch">
+                <div class="role-avatar">{{ $user->initials() }}</div>
+                <div>
+                    <b>{{ $user->name }}</b>
+                    <small>{{ $user->roleLabel() }}</small>
+                </div>
             </div>
-            <i data-lucide="chevron-down"></i>
-        </div>
+        @endif
         <nav>
             @foreach($menuItems ?? [] as $item)
-                <a href="{{ route($item['route']) }}" @class(['active' => request()->routeIs($item['route'])])>
+                <a href="{{ route($item['route']) }}" @class(['active' => request()->routeIs($item['route']) || request()->routeIs(str($item['route'])->beforeLast('.').'.*')])>
                     <i data-lucide="{{ $item['icon'] }}"></i>
                     {{ $item['label'] }}
                 </a>
             @endforeach
         </nav>
         <div class="sidebar-bottom">
-            <a href="{{ route('back.parametres') }}"><i data-lucide="settings"></i> Paramètres</a>
-            <a href="{{ route('front.home') }}"><i data-lucide="log-out"></i> Se déconnecter</a>
+            @if($canParametres)
+                <a href="{{ route('back.parametres') }}" @class(['active' => request()->routeIs('back.parametres')])><i data-lucide="settings"></i> Paramètres</a>
+            @endif
+            <a href="{{ route('front.home') }}"><i data-lucide="external-link"></i> Site citoyen</a>
+            <form method="post" action="{{ route('front.logout') }}">
+                @csrf
+                <button type="submit" class="sidebar-logout"><i data-lucide="log-out"></i> Se déconnecter</button>
+            </form>
         </div>
     </aside>
 
     <main class="back-main">
         <header class="back-header">
             <div>
-                <span class="breadcrumb">Couture Plus <i data-lucide="chevron-right"></i> @yield('page-title', 'Tableau de bord')</span>
+                <span class="breadcrumb">{{ $user?->name ?? 'TexTileCycle' }} <i data-lucide="chevron-right"></i> @yield('page-title', 'Tableau de bord')</span>
                 <h1>@yield('page-title', 'Tableau de bord')</h1>
             </div>
             <div class="back-header-actions">
@@ -41,7 +52,9 @@
                     <i data-lucide="bell"></i>
                     <i></i>
                 </button>
-                <div class="user-avatar">AM</div>
+                @if($user)
+                    <div class="user-avatar" title="{{ $user->roleLabel() }}">{{ $user->initials() }}</div>
+                @endif
             </div>
         </header>
 
