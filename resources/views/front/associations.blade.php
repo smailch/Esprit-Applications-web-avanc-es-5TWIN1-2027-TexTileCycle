@@ -1,39 +1,70 @@
 @extends('layouts.front')
 
+@section('title', 'Associations partenaires — TexTileCycle')
+
 @section('content')
 <main class="container page-content">
     <div class="page-title-row">
         <div>
             <p class="kicker">Solidarité textile</p>
-            <h1>{{ $donation ? 'Proposer un don' : 'Associations partenaires' }}</h1>
-            <p class="muted">
-                {{ $donation
-                    ? 'Trouvez l\'association qui donnera le plus de sens à votre vêtement.'
-                    : 'Des besoins réels, des dons qui comptent.' }}
-            </p>
+            <h1>Associations partenaires</h1>
+            <p class="muted">Des besoins réels, des dons qui comptent vraiment.</p>
         </div>
     </div>
 
-    <div class="association-grid">
-        @foreach([
-            ['Solidarité Mode', 'Recherche pulls taille L', '98%', 'Pulls, manteaux', 'Espace Elan'],
-            ['Friperie Solidaire', 'Besoin de vêtements enfants', '94%', 'Enfants 4–12 ans', 'Amitié Sans Frontières'],
-            ['Les Petites Mains', 'Collecte textile créatif', '88%', 'Tissus, boutons', 'Atelier social'],
-        ] as [$name, $need, $score, $types, $org])
-            <article class="association-card">
-                <div class="association-head">
-                    <div class="association-logo"><i data-lucide="heart-handshake"></i></div>
-                    <x-status-badge tone="purple">{{ $score }} match</x-status-badge>
-                </div>
-                <h3>{{ $name }}</h3>
-                <p>{{ $need }}</p>
-                <div class="tag-row"><span>{{ $types }}</span><span>{{ $org }}</span></div>
-                <button type="button" class="btn btn-secondary full">
-                    {{ $donation ? 'Proposer mon vêtement' : 'Voir les besoins' }}
-                    <i data-lucide="arrow-right"></i>
-                </button>
-            </article>
-        @endforeach
-    </div>
+    @if($associations->isEmpty())
+        <div class="empty-state">
+            <i data-lucide="heart-handshake"></i>
+            <h3>Aucune association active</h3>
+            <p>Les associations partenaires apparaîtront ici dès leur validation.</p>
+        </div>
+    @else
+        <div class="association-grid">
+            @foreach($associations as $asso)
+                <article class="association-card">
+                    <div class="association-head">
+                        <div class="association-logo">
+                            <i data-lucide="heart-handshake"></i>
+                        </div>
+                        <x-status-badge tone="purple">{{ $asso->matchScore() }}% match</x-status-badge>
+                    </div>
+                    <h3>{{ $asso->nom }}</h3>
+                    <p class="muted small">{{ Str::limit($asso->description, 100) }}</p>
+
+                    @if(!empty($asso->besoins))
+                        <div class="besoins-tags">
+                            @foreach(array_slice($asso->besoins, 0, 3) as $besoin)
+                                <span class="tag">
+                                    {{ $besoin['type'] ?? '' }}
+                                    @if(!empty($besoin['taille'])) · {{ $besoin['taille'] }}@endif
+                                    @if(!empty($besoin['quantite'])) ({{ $besoin['quantite'] }})@endif
+                                </span>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="muted small">Aucun besoin spécifique renseigné.</p>
+                    @endif
+
+                    <div class="association-meta">
+                        <span><i data-lucide="map-pin"></i> {{ $asso->adresse }}</span>
+                        @if($asso->telephone)
+                            <span><i data-lucide="phone"></i> {{ $asso->telephone }}</span>
+                        @endif
+                    </div>
+
+                    @auth
+                        <a href="{{ route('front.dons') }}?association={{ $asso->_id }}"
+                           class="btn btn-secondary full">
+                            Proposer un don <i data-lucide="arrow-right"></i>
+                        </a>
+                    @else
+                        <a href="{{ route('front.login') }}" class="btn btn-secondary full">
+                            Connexion pour donner <i data-lucide="arrow-right"></i>
+                        </a>
+                    @endauth
+                </article>
+            @endforeach
+        </div>
+    @endif
 </main>
 @endsection
