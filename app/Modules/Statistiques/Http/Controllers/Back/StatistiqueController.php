@@ -4,7 +4,6 @@ namespace App\Modules\Statistiques\Http\Controllers\Back;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Core\Http\Controllers\Concerns\RendersBackOffice;
-use App\Modules\Statistiques\Models\ImpactEcologique;
 use App\Modules\Statistiques\Models\Statistique;
 use App\Modules\Statistiques\Services\AnalysePredictiveService;
 use App\Modules\Statistiques\Services\ConsolidationService;
@@ -25,13 +24,14 @@ class StatistiqueController extends Controller
 
     public function index()
     {
-        $series = $this->metrics->seriesMensuelles(12);
+        // 24 mois pour l'IA (saisonnalité), 12 mois affichés dans les graphiques.
+        $historiqueIa = $this->metrics->seriesMensuelles(24);
 
         return $this->backView('back.statistiques', [
             'pageTitle' => 'Statistiques & impact',
             'kpis' => $this->metrics->overview(),
-            'series' => $series,
-            'analyse' => $this->ia->analyser($series, $this->metrics->activiteAteliers()),
+            'series' => $this->metrics->derniersMois($historiqueIa, 12),
+            'analyse' => $this->ia->analyser($historiqueIa, $this->metrics->activiteAteliers()),
             'repartition' => $this->metrics->repartitionVetements(),
             'topTypes' => $this->metrics->topTypes(),
             'historique' => $this->historique(),
@@ -65,26 +65,21 @@ class StatistiqueController extends Controller
     }
 
     /**
-     * Historique consolidé : statistiques + impact fusionnés par période.
+     * Historique consolidé : chaque statistique avec son impact de la même période (relation 1:1).
      */
     private function historique(): array
     {
-        $impacts = ImpactEcologique::orderBy('periode', 'desc')->get()->keyBy(fn ($i) => $i->periode->format('Y-m'));
-
-        return Statistique::orderBy('periode', 'desc')->get()->map(function (Statistique $s) use ($impacts) {
-            $impact = $impacts[$s->periode->format('Y-m')] ?? null;
-
-            return [
-                'periode' => $s->periode,
-                'nb_vetements' => $s->nb_vetements,
-                'nb_reparations' => $s->nb_reparations,
-                'nb_dons' => $s->nb_dons,
-                'nb_utilisateurs' => $s->nb_utilisateurs,
-                'nb_ateliers' => $s->nb_ateliers,
-                'vetements_sauves' => $impact?->vetements_sauves ?? 0,
-                'co2_evite_kg' => $impact?->co2_evite_kg ?? 0,
-                'eau_economisee_litres' => $impact?->eau_economisee_litres ?? 0,
-            ];
-        })->all();
+        return Statistique::with('impact')->orderBy('periode', 'desc')->get()->map(fn (Statistique $s) => [
+            'periode' => $s->periode,
+            'demo' => $s->estDemo(),
+            'nb_vetements' => $s->nb_vetements,
+            'nb_reparations' => $s->nb_reparations,
+            'nb_dons' => $s->nb_dons,
+            'nb_utilisateurs' => $s->nb_utilisateurs,
+            'nb_ateliers' => $s->nb_ateliers,
+            'vetements_sauves' => $s->impact?->vetements_sauves ?? 0,
+            'co2_evite_kg' => $s->impact?->co2_evite_kg ?? 0,
+            'eau_economisee_litres' => $s->impact?->eau_economisee_litres ?? 0,
+        ])->all();
     }
 }

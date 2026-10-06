@@ -156,7 +156,12 @@
             <tbody>
                 @forelse($historique as $ligne)
                     <tr>
-                        <td><b>{{ ucfirst($ligne['periode']->locale('fr')->isoFormat('MMMM YYYY')) }}</b></td>
+                        <td>
+                            <b>{{ ucfirst($ligne['periode']->locale('fr')->isoFormat('MMMM YYYY')) }}</b>
+                            @if($ligne['demo'])
+                                <x-status-badge tone="blue" title="Généré par HistoriqueStatistiquesSeeder">démo</x-status-badge>
+                            @endif
+                        </td>
                         <td>{{ $ligne['nb_vetements'] }}</td>
                         <td>{{ $ligne['nb_reparations'] }}</td>
                         <td>{{ $ligne['nb_dons'] }}</td>

@@ -7,6 +7,7 @@ use App\Modules\Core\Support\MongoCollections;
 use App\Modules\Partenaires\Services\PartenaireService;
 use App\Modules\Signalements\Models\Signalement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use MongoDB\BSON\UTCDateTime;
 
 class SignalementService
@@ -19,7 +20,7 @@ class SignalementService
     public function paginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         return Signalement::query()
-            ->with('auteur')
+            ->with(['auteur', 'cible'])
             ->when($filters['statut'] ?? null, fn ($q, $statut) => $q->where('statut', $statut))
             ->when($filters['type'] ?? null, fn ($q, $type) => $q->where('type', $type))
             ->when($filters['cible_type'] ?? null, fn ($q, $cible) => $q->where('cible_type', $cible))
@@ -61,12 +62,70 @@ class SignalementService
         ]);
     }
 
-    public function update(Signalement $signalement, array $data): Signalement
+    public function update(Signalement $signalement, array $data, User $admin): Signalement
     {
-        $signalement->fill(array_intersect_key($data, array_flip(['type', 'motif', 'note_admin'])));
+        $signalement->fill(array_intersect_key($data, array_flip(['type', 'cible_type', 'cible_id', 'motif', 'note_admin', 'statut'])));
+
+        if ($signalement->isDirty('statut')) {
+            $signalement->fill($signalement->estEnAttente()
+                ? ['traite_par' => null, 'traite_le' => null]
+                : ['traite_par' => (string) $admin->getKey(), 'traite_le' => now()]);
+        }
+
         $signalement->save();
 
         return $signalement;
+    }
+
+    /**
+     * Options de la liste déroulante « élément signalé », construites à partir
+     * des modèles Eloquent des autres modules (morph map) et de leurs relations.
+     *
+     * @return array<string, array<string, string>> libellé du groupe => ["Type|id" => libellé]
+     */
+    public function ciblesDisponibles(int $limite = 100): array
+    {
+        $options = [];
+
+        foreach (Signalement::CIBLES as $alias => $config) {
+            $classe = Relation::getMorphedModel($alias);
+
+            if (! $classe) {
+                continue;
+            }
+
+            $query = $classe::query()->orderBy('created_at', 'desc')->take($limite);
+
+            $libelle = match ($alias) {
+                'Vetement' => fn ($v) => trim(($v->type ?? 'Vêtement').' '.($v->size ?? '')).' — '.($v->owner?->name ?? 'propriétaire inconnu'),
+                'Don' => fn ($d) => 'Don « '.($d->vetement?->type ?? 'vêtement').' » → '.($d->association?->nom ?? 'association'),
+                'User' => fn ($u) => $u->name.' ('.$u->email.')',
+                default => fn ($m) => (string) ($m->{$config['label']} ?? $alias),
+            };
+
+            $relations = ['Vetement' => ['owner'], 'Don' => ['vetement', 'association']][$alias] ?? [];
+
+            $options[$config['nom'].'s'] = $query->with($relations)->get()
+                ->mapWithKeys(fn ($modele) => [$alias.'|'.$modele->getKey() => $libelle($modele)])
+                ->all();
+        }
+
+        return array_filter($options);
+    }
+
+    /**
+     * Comptes pouvant être déclarés auteur d'un signalement saisi par l'administration.
+     *
+     * @return \Illuminate\Support\Collection<int, User>
+     */
+    public function auteursDisponibles()
+    {
+        return User::where('is_active', true)->orderBy('name')->get(['name', 'email', 'role']);
+    }
+
+    public function findOrFail(string $id): Signalement
+    {
+        return Signalement::with(['auteur', 'traitePar', 'cible'])->findOrFail($id);
     }
 
     /**

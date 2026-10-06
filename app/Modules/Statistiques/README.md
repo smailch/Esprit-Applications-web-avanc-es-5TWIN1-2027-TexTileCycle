@@ -13,6 +13,40 @@ Responsable : Membre 5. Toutes les pages sont réservées au rôle `admin` (midd
 Les données des autres modules sont lues directement dans leurs collections via
 `App\Modules\Core\Support\MongoCollections` : aucune dépendance aux modèles des autres membres.
 
+## CRUD Signalement (back office)
+
+| Action | Route | Vue |
+|---|---|---|
+| Liste + filtres | `GET /admin/signalements` | `back/signalements/index` |
+| Ajout | `GET /admin/signalements/creer`, `POST /admin/signalements` | `create` + partial `_form` |
+| Détail | `GET /admin/signalements/{id}` | `show` |
+| Modification (pré-remplie) | `GET /admin/signalements/{id}/modifier`, `PUT …` | `edit` + partial `_form` |
+| Modération | `PATCH /admin/signalements/{id}/moderation` | `show` |
+| Suppression (confirmation) | `DELETE /admin/signalements/{id}` | `index`, `show` |
+
+- **Validation :** Form Requests `Back\StoreSignalementRequest` et `Back\UpdateSignalementRequest`, avec messages en français. Les erreurs s'affichent sous chaque champ avec `@error` et les saisies sont conservées avec `old()`.
+- **Relations Eloquent :**
+  - `Signalement::auteur()` et `traitePar()` → `User`
+  - `Signalement::cible()` → `morphTo` vers Vetement, Atelier, Association, Don ou User
+  - `Statistique::impact()` ↔ `ImpactEcologique::statistique()`, en 1:1 sur `periode`
+- **Exploitation dans les vues :** les listes déroulantes « auteur » et « élément signalé » sont construites à partir des modèles des autres modules. La page détail affiche l'auteur, la cible, l'admin qui a traité le signalement et les autres signalements sur la même cible.
+
+Côté citoyen, la page `GET /mes-signalements` permet de suivre ses propres signalements.
+
+## Seeders et factories
+
+- **Factories :**
+  - `SignalementFactory` (états `enAttente()`, `traite($admin)`, `rejete($admin)` et `pour($cible)`)
+  - `StatistiqueFactory`, qui crée automatiquement l'`ImpactEcologique` lié
+  - `ImpactEcologiqueFactory`
+- **Seeders**, appelés par `DatabaseSeeder` et idempotents (ils ne touchent qu'aux documents `source = seed`) :
+  - `SignalementSeeder` : signalements reliés aux vrais citoyens, ateliers, vêtements et associations.
+  - `HistoriqueStatistiquesSeeder` : 24 mois d'historique de démonstration *avant* la première activité réelle, avec croissance et saisonnalité. Ces mois portent le badge « démo » dans l'historique.
+
+```bash
+php artisan db:seed
+```
+
 ## Pour les autres membres : bouton « Signaler »
 
 ```blade

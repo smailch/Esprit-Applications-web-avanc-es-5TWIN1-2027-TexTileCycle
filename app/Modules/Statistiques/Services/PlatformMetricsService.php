@@ -3,6 +3,7 @@
 namespace App\Modules\Statistiques\Services;
 
 use App\Modules\Core\Support\MongoCollections;
+use App\Modules\Statistiques\Models\Statistique;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
@@ -76,20 +77,90 @@ class PlatformMetricsService
             $cles
         );
 
+        $series = [
+            'vetements' => $this->fill($cles, $this->monthlyCount('vetements', $debut)),
+            'inscriptions' => $this->fill($cles, $this->monthlyCount('users', $debut)),
+            'rendez_vous' => $this->fill($cles, $this->monthlyCount('rendez_vous', $debut)),
+            'reparations' => $parMois($evenements->where('kind', 'reparation'), fn () => 1),
+            'dons' => $parMois($evenements->where('kind', 'don'), fn () => 1),
+            'sauves' => $parMois($evenements, fn () => 1),
+            'co2' => $parMois($evenements, fn ($e) => $this->impact->pourVetement($e['type'], $e['kind'])['co2']),
+            'eau' => $parMois($evenements, fn ($e) => $this->impact->pourVetement($e['type'], $e['kind'])['eau']),
+        ];
+
         return [
             'mois' => $cles,
             'labels' => array_map(fn (string $cle) => Carbon::createFromFormat('Y-m-d', $cle.'-01')->locale('fr')->isoFormat('MMM YY'), $cles),
-            'series' => [
-                'vetements' => $this->fill($cles, $this->monthlyCount('vetements', $debut)),
-                'inscriptions' => $this->fill($cles, $this->monthlyCount('users', $debut)),
-                'rendez_vous' => $this->fill($cles, $this->monthlyCount('rendez_vous', $debut)),
-                'reparations' => $parMois($evenements->where('kind', 'reparation'), fn () => 1),
-                'dons' => $parMois($evenements->where('kind', 'don'), fn () => 1),
-                'sauves' => $parMois($evenements, fn () => 1),
-                'co2' => $parMois($evenements, fn ($e) => $this->impact->pourVetement($e['type'], $e['kind'])['co2']),
-                'eau' => $parMois($evenements, fn ($e) => $this->impact->pourVetement($e['type'], $e['kind'])['eau']),
-            ],
+            'series' => $this->appliquerHistorique($cles, $series),
         ];
+    }
+
+    /**
+     * Garde les $n derniers mois d'un résultat de seriesMensuelles().
+     */
+    public function derniersMois(array $resultat, int $n): array
+    {
+        return [
+            'mois' => array_slice($resultat['mois'], -$n),
+            'labels' => array_slice($resultat['labels'], -$n),
+            'series' => array_map(fn (array $serie) => array_slice($serie, -$n), $resultat['series']),
+        ];
+    }
+
+    /**
+     * Premier mois d'activité réelle de la plateforme (null si aucune donnée).
+     */
+    public function premiereActivite(): ?Carbon
+    {
+        $dates = [];
+
+        foreach (['users', 'vetements', 'rendez_vous', 'dons'] as $collection) {
+            $doc = MongoCollections::get($collection)->findOne(
+                ['created_at' => ['$type' => 'date']],
+                ['sort' => ['created_at' => 1], 'projection' => ['created_at' => 1]] + MongoCollections::arrayTypeMap()
+            );
+
+            if ($date = MongoCollections::toDate($doc['created_at'] ?? null)) {
+                $dates[] = $date;
+            }
+        }
+
+        return $dates ? min($dates)->copy()->startOfMonth() : null;
+    }
+
+    /**
+     * Les mois passés déjà consolidés (collections statistiques / impact_ecologique)
+     * remplacent le calcul en temps réel ; le mois courant reste calculé en direct.
+     */
+    private function appliquerHistorique(array $cles, array $series): array
+    {
+        $historique = Statistique::with('impact')
+            ->where('periode', '>=', Carbon::createFromFormat('Y-m-d', $cles[0].'-01')->startOfDay())
+            ->where('periode', '<', now()->startOfMonth())
+            ->get()
+            ->keyBy(fn (Statistique $s) => $s->periode->format('Y-m'));
+
+        $champs = [
+            'vetements' => fn ($s) => $s->nb_vetements,
+            'inscriptions' => fn ($s) => $s->nb_utilisateurs,
+            'reparations' => fn ($s) => $s->nb_reparations,
+            'dons' => fn ($s) => $s->nb_dons,
+            'sauves' => fn ($s) => $s->impact?->vetements_sauves,
+            'co2' => fn ($s) => $s->impact?->co2_evite_kg,
+            'eau' => fn ($s) => $s->impact?->eau_economisee_litres,
+        ];
+
+        foreach ($cles as $i => $cle) {
+            if (! $stat = $historique[$cle] ?? null) {
+                continue;
+            }
+
+            foreach ($champs as $serie => $valeur) {
+                $series[$serie][$i] = $valeur($stat) ?? $series[$serie][$i];
+            }
+        }
+
+        return $series;
     }
 
     /**

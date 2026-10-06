@@ -46,7 +46,7 @@ class AnalysePredictiveService
     public function analyser(array $historique, array $ateliers = []): array
     {
         $mois = $historique['mois'];
-        $insights = [];
+        $constats = [];
         $previsions = [];
 
         foreach (self::INDICATEURS as $cle => $libelle) {
@@ -58,10 +58,12 @@ class AnalysePredictiveService
                 continue;
             }
 
-            $insights[] = $this->tendance($libelle, $serie);
-            $insights[] = $this->anomalie($libelle, $serie, end($moisComplets));
-            $insights[] = $this->saisonnalite($libelle, $serie, $moisComplets);
+            $constats[] = $this->tendance($libelle, $serie);
+            $constats[] = $this->anomalie($libelle, $serie, end($moisComplets));
+            $constats[] = $this->saisonnalite($libelle, $serie, $moisComplets);
         }
+
+        $insights = $this->regrouper(array_filter($constats));
 
         foreach (['reparations', 'dons', 'sauves', 'co2'] as $cle) {
             $serie = array_slice($historique['series'][$cle] ?? [], 0, -1);
@@ -169,11 +171,9 @@ class AnalysePredictiveService
             return null;
         }
 
-        $pct = $this->pourcent($variation);
-
         return $variation > 0
-            ? ['niveau' => 'success', 'icone' => 'trending-up', 'titre' => "Hausse des {$libelle}", 'message' => "{$pct} de {$libelle} sur les 3 derniers mois par rapport au trimestre précédent."]
-            : ['niveau' => 'warning', 'icone' => 'trending-down', 'titre' => "Baisse des {$libelle}", 'message' => "{$pct} de {$libelle} sur les 3 derniers mois par rapport au trimestre précédent."];
+            ? ['groupe' => 'hausse', 'detail' => $libelle.' '.$this->pourcent($variation)]
+            : ['groupe' => 'baisse', 'detail' => $libelle.' '.$this->pourcent($variation)];
     }
 
     private function anomalie(string $libelle, array $serie, string $mois): ?array
@@ -197,17 +197,10 @@ class AnalysePredictiveService
             return null;
         }
 
-        $nomMois = Carbon::createFromFormat('Y-m-d', $mois.'-01')->locale('fr')->isoFormat('MMMM YYYY');
-        $sens = $z > 0 ? 'inhabituellement élevé' : 'inhabituellement bas';
-
         return [
-            'niveau' => $z > 0 ? 'info' : 'danger',
-            'icone' => 'radar',
-            'titre' => 'Anomalie détectée',
-            'message' => sprintf(
-                'Nombre de %s %s en %s : %s contre %s en moyenne (z-score %+.1f).',
-                $libelle, $sens, $nomMois, $this->nombre($dernier), $this->nombre($moyenne), $z
-            ),
+            'groupe' => $z > 0 ? 'pic' : 'creux',
+            'mois' => Carbon::createFromFormat('Y-m-d', $mois.'-01')->locale('fr')->isoFormat('MMMM YYYY'),
+            'detail' => sprintf('%s : %s au lieu de %s en moyenne (z = %+.1f)', $libelle, $this->nombre($dernier), $this->nombre($moyenne), $z),
         ];
     }
 
@@ -226,11 +219,42 @@ class AnalysePredictiveService
         }
 
         return [
-            'niveau' => 'info',
-            'icone' => 'sun-snow',
-            'titre' => 'Tendance saisonnière',
-            'message' => sprintf('%s de %s %s par rapport à la moyenne annuelle.', $this->pourcent($indices[$saison]), $libelle, $saison === 'printemps' ? 'au printemps' : 'en '.$saison),
+            'groupe' => 'saison',
+            'detail' => sprintf('%s %s %s', $libelle, $this->pourcent($indices[$saison]), $saison === 'printemps' ? 'au printemps' : 'en '.$saison),
         ];
+    }
+
+    /**
+     * Regroupe les constats par catégorie : une carte par type d'analyse.
+     */
+    private function regrouper(array $constats): array
+    {
+        $groupes = collect($constats)->groupBy('groupe');
+        $liste = fn (string $cle) => $groupes[$cle]->pluck('detail')->implode(' ; ');
+        $insights = [];
+
+        if ($groupes->has('creux')) {
+            $insights[] = ['niveau' => 'danger', 'icone' => 'radar', 'titre' => 'Anomalie : activité anormalement basse',
+                'message' => 'En '.$groupes['creux'][0]['mois'].' — '.$liste('creux').'.'];
+        }
+        if ($groupes->has('pic')) {
+            $insights[] = ['niveau' => 'info', 'icone' => 'radar', 'titre' => "Anomalie : pic d'activité",
+                'message' => 'En '.$groupes['pic'][0]['mois'].' — '.$liste('pic').'.'];
+        }
+        if ($groupes->has('baisse')) {
+            $insights[] = ['niveau' => 'warning', 'icone' => 'trending-down', 'titre' => 'Tendance à la baisse',
+                'message' => '3 derniers mois vs trimestre précédent : '.$liste('baisse').'.'];
+        }
+        if ($groupes->has('hausse')) {
+            $insights[] = ['niveau' => 'success', 'icone' => 'trending-up', 'titre' => 'Tendance à la hausse',
+                'message' => '3 derniers mois vs trimestre précédent : '.$liste('hausse').'.'];
+        }
+        if ($groupes->has('saison')) {
+            $insights[] = ['niveau' => 'info', 'icone' => 'sun-snow', 'titre' => 'Tendance saisonnière',
+                'message' => 'Écart à la moyenne annuelle : '.$liste('saison').'.'];
+        }
+
+        return $insights;
     }
 
     /**

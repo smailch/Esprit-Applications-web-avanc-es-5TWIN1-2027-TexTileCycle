@@ -65,6 +65,7 @@
                     <i data-lucide="phone" aria-hidden="true"></i> Appeler
                 </a>
             @endif
+            <x-signaler cible-type="Atelier" :cible-id="(string) $atelier->getKey()" />
         </div>
     </header>
 

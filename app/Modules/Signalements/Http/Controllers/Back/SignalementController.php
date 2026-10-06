@@ -3,8 +3,10 @@
 namespace App\Modules\Signalements\Http\Controllers\Back;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Auth\Models\User;
 use App\Modules\Core\Http\Controllers\Concerns\RendersBackOffice;
-use App\Modules\Signalements\Http\Requests\StoreSignalementRequest;
+use App\Modules\Signalements\Http\Requests\Back\StoreSignalementRequest;
+use App\Modules\Signalements\Http\Requests\Back\UpdateSignalementRequest;
 use App\Modules\Signalements\Models\Signalement;
 use App\Modules\Signalements\Services\SignalementService;
 use Illuminate\Http\Request;
@@ -28,41 +30,69 @@ class SignalementController extends Controller
             'filters' => $filters,
             'signalements' => $this->signalements->paginate($filters),
             'counts' => $this->signalements->countsByStatut(),
-            'types' => Signalement::TYPES,
-            'statuts' => Signalement::STATUTS,
-            'cibles' => array_keys(Signalement::CIBLES),
         ]);
+    }
+
+    public function create()
+    {
+        return $this->backView('back.signalements.create', [
+            'pageTitle' => 'Nouveau signalement',
+            'signalement' => new Signalement(),
+        ] + $this->formOptions());
     }
 
     public function store(StoreSignalementRequest $request)
     {
-        $this->signalements->create($request->validated(), $request->user());
+        $signalement = $this->signalements->create(
+            $request->validated(),
+            User::findOrFail($request->validated('user_id'))
+        );
 
-        return back()->with('success', 'Signalement enregistré.');
+        return redirect()
+            ->route('back.signalements.show', $signalement->getKey())
+            ->with('success', 'Signalement enregistré.');
     }
 
-    public function update(Request $request, string $signalement)
+    public function show(string $signalement)
     {
-        $model = Signalement::findOrFail($signalement);
+        $model = $this->signalements->findOrFail($signalement);
 
-        $data = $request->validate([
-            'type' => ['required', Rule::in(Signalement::TYPES)],
-            'motif' => ['required', 'string', 'min:10', 'max:2000'],
-            'note_admin' => ['nullable', 'string', 'max:2000'],
+        return $this->backView('back.signalements.show', [
+            'pageTitle' => 'Signalement #'.substr((string) $model->getKey(), -6),
+            'signalement' => $model,
+            'autres' => $model->signalementsMemeCible(),
         ]);
+    }
 
-        $this->signalements->update($model, $data);
+    public function edit(string $signalement)
+    {
+        $model = $this->signalements->findOrFail($signalement);
 
-        return back()->with('success', 'Signalement mis à jour.');
+        return $this->backView('back.signalements.edit', [
+            'pageTitle' => 'Modifier le signalement',
+            'signalement' => $model,
+        ] + $this->formOptions());
+    }
+
+    public function update(UpdateSignalementRequest $request, string $signalement)
+    {
+        $model = $this->signalements->findOrFail($signalement);
+        $this->signalements->update($model, $request->validated(), $request->user());
+
+        return redirect()
+            ->route('back.signalements.show', $model->getKey())
+            ->with('success', 'Signalement mis à jour.');
     }
 
     public function moderer(Request $request, string $signalement)
     {
-        $model = Signalement::findOrFail($signalement);
+        $model = $this->signalements->findOrFail($signalement);
 
         $data = $request->validate([
             'statut' => ['required', Rule::in([Signalement::STATUT_TRAITE, Signalement::STATUT_REJETE])],
-            'note_admin' => ['nullable', 'string', 'max:2000'],
+            'note_admin' => ['nullable', 'string', 'max:2000', Rule::requiredIf(fn () => $request->input('statut') === Signalement::STATUT_REJETE)],
+        ], [
+            'note_admin.required' => 'Expliquez pourquoi le signalement est rejeté.',
         ]);
 
         $sanction = $this->signalements->moderer(
@@ -82,6 +112,16 @@ class SignalementController extends Controller
     {
         $this->signalements->delete(Signalement::findOrFail($signalement));
 
-        return back()->with('success', 'Signalement supprimé.');
+        return redirect()
+            ->route('back.signalements.index')
+            ->with('success', 'Signalement supprimé.');
+    }
+
+    private function formOptions(): array
+    {
+        return [
+            'cibles' => $this->signalements->ciblesDisponibles(),
+            'auteurs' => $this->signalements->auteursDisponibles(),
+        ];
     }
 }
