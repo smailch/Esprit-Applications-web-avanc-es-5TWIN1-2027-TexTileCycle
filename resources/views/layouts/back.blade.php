@@ -19,7 +19,7 @@
         @endif
         <nav>
             @foreach($menuItems ?? [] as $item)
-                <a href="{{ route($item['route']) }}" @class(['active' => request()->routeIs($item['route']) || request()->routeIs(str($item['route'])->beforeLast('.').'.*')])>
+                <a href="{{ route($item['route']) }}" @class(['active' => request()->routeIs($item['route']) || (substr_count($item['route'], '.') > 1 && request()->routeIs(str($item['route'])->beforeLast('.').'.*'))])>
                     <i data-lucide="{{ $item['icon'] }}"></i>
                     {{ $item['label'] }}
                 </a>
