@@ -19,8 +19,9 @@ class RoleNavigationService
             ['label' => 'Rendez-vous', 'route' => 'back.rdv', 'icon' => 'calendar-days', 'module' => 'RendezVous'],
             ['label' => 'Dons', 'route' => 'back.dons', 'icon' => 'gift', 'module' => 'Dons'],
             ['label' => 'Associations', 'route' => 'back.associations', 'icon' => 'heart-handshake', 'module' => 'Associations'],
-            ['label' => 'Signalements', 'route' => 'back.signalements', 'icon' => 'circle-alert', 'module' => 'Signalements'],
-            ['label' => 'Statistiques & impact', 'route' => 'back.statistiques', 'icon' => 'bar-chart-3', 'module' => 'Statistiques'],
+            ['label' => 'Partenaires', 'route' => 'back.partenaires.index', 'icon' => 'badge-check', 'module' => 'Partenaires'],
+            ['label' => 'Signalements', 'route' => 'back.signalements.index', 'icon' => 'circle-alert', 'module' => 'Signalements'],
+            ['label' => 'Statistiques & impact', 'route' => 'back.statistiques.index', 'icon' => 'bar-chart-3', 'module' => 'Statistiques'],
             ['label' => 'Utilisateurs', 'route' => 'back.users.index', 'icon' => 'users', 'module' => 'Auth'],
         ];
     }

@@ -12,6 +12,7 @@
                 <a href="{{ route('front.vetements') }}" @class(['active' => request()->routeIs('front.vetements')])>Mes vêtements</a>
                 <a href="{{ route('front.rdv') }}" @class(['active' => request()->routeIs('front.rdv')])>Rendez-vous</a>
                 <a href="{{ route('front.dons') }}" @class(['active' => request()->routeIs('front.dons')])>Dons</a>
+                <a href="{{ route('front.signalements.index') }}" @class(['active' => request()->routeIs('front.signalements.*')])>Mes signalements</a>
             @endauth
         </nav>
         <div class="header-actions">

@@ -15,5 +15,11 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call(\App\Modules\Auth\Database\Seeders\AdminUserSeeder::class);
+
+        // Module 5 — Administration, statistiques & impact
+        $this->call([
+            \App\Modules\Signalements\Database\Seeders\SignalementSeeder::class,
+            \App\Modules\Statistiques\Database\Seeders\HistoriqueStatistiquesSeeder::class,
+        ]);
     }
 }
