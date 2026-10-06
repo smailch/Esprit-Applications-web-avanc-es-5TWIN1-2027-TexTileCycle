@@ -10,7 +10,7 @@
             <a href="{{ route('front.associations') }}" @class(['active' => request()->routeIs('front.associations')])>Associations</a>
             @auth
                 <a href="{{ route('front.vetements') }}" @class(['active' => request()->routeIs('front.vetements')])>Mes vêtements</a>
-                <a href="{{ route('front.rdv') }}" @class(['active' => request()->routeIs('front.rdv')])>Rendez-vous</a>
+                <a href="{{ route('front.rdv') }}" @class(['active' => request()->routeIs('front.rdv*')])>Rendez-vous</a>
                 <a href="{{ route('front.dons') }}" @class(['active' => request()->routeIs('front.dons')])>Dons</a>
                 <a href="{{ route('front.signalements.index') }}" @class(['active' => request()->routeIs('front.signalements.*')])>Mes signalements</a>
             @endauth
@@ -33,13 +33,16 @@
         </div>
     </header>
 
-    @if(session('success') || session('info') || $errors->any())
+    @if(session('success') || session('info') || session('error') || $errors->any())
         <div class="container" style="padding-top:16px">
             @if(session('success'))
                 <div class="panel" style="padding:12px 16px;background:var(--green-50);border:1px solid var(--green);margin-bottom:8px">{{ session('success') }}</div>
             @endif
             @if(session('info'))
                 <div class="panel" style="padding:12px 16px;background:#e3f2fd;border:1px solid #64b5f6;margin-bottom:8px">{{ session('info') }}</div>
+            @endif
+            @if(session('error'))
+                <div class="panel" style="padding:12px 16px;background:#ffebee;border:1px solid #ef5350;margin-bottom:8px;color:#c62828">{{ session('error') }}</div>
             @endif
             @foreach($errors->all() as $error)
                 <div class="panel" style="padding:12px 16px;background:#fff3e0;border:1px solid #ffb74d;margin-bottom:8px">{{ $error }}</div>

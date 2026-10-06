@@ -7,12 +7,12 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Validation pour la création d'un rendez-vous.
+ * Validation pour la mise à jour d'un rendez-vous.
  *
- * user_id et statut ne sont PAS saisis dans le formulaire :
- * ils sont définis automatiquement dans le contrôleur.
+ * Mêmes règles que StoreRendezVousRequest.
+ * Le statut n'est pas modifiable par le citoyen.
  */
-class StoreRendezVousRequest extends FormRequest
+class UpdateRendezVousRequest extends FormRequest
 {
     public function authorize(): bool
     {

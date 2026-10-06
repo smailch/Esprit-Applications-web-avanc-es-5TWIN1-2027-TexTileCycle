@@ -9,7 +9,7 @@
 
 @php
     $id = (string) $atelier->getKey();
-    $rdvUrl = route('front.rdv', ['atelier' => $id]);
+    $rdvUrl = route('front.rdv.create', ['atelier_id' => $id]);
     $telLien = $atelier->telephoneLien();
     $semaine = $atelier->horairesSemaine();
     $prixMin = $atelier->prixMinimal();
@@ -109,7 +109,7 @@
                                     @if ($service->prixFormate())
                                         <p class="service-row__price"><span class="sr-only">Prix estimé : </span>{{ $service->prixFormate() }}</p>
                                     @endif
-                                    <a href="{{ route('front.rdv', ['atelier' => $id, 'service' => (string) $service->getKey()]) }}" class="btn btn-secondary small" aria-label="Prendre RDV pour « {{ $service->nom }} » chez {{ $atelier->nom }}">
+                                    <a href="{{ route('front.rdv.create', ['atelier_id' => $id, 'service_id' => (string) $service->getKey()]) }}" class="btn btn-secondary small" aria-label="Prendre RDV pour « {{ $service->nom }} » chez {{ $atelier->nom }}">
                                         Réserver
                                     </a>
                                 </div>

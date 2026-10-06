@@ -7,7 +7,6 @@ use App\Modules\Ateliers\Models\Service;
 use App\Modules\Ateliers\Services\AtelierService;
 use App\Modules\Ateliers\Services\ServiceCatalogueService;
 use App\Modules\Auth\Models\User;
-use App\Modules\RendezVous\Services\RendezVousService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\MessageBag;
@@ -39,10 +38,6 @@ class AteliersEspaceTest extends TestCase
     {
         parent::setUp();
         $this->blockRemoteMongo();
-
-        $rendezVous = Mockery::mock(RendezVousService::class);
-        $rendezVous->shouldReceive('resumeAtelier')->andReturn(['en_attente' => 0, 'prochains' => new Collection()]);
-        $this->app->instance(RendezVousService::class, $rendezVous);
     }
 
     private function user(string $role = User::ROLE_ATELIER, string $id = self::ID_USER): User

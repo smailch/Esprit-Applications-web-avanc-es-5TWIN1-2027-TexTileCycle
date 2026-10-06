@@ -6,80 +6,119 @@ use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Models\Service;
 use App\Modules\Auth\Models\User;
 use App\Modules\Vetements\Models\Vetement;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Jenssegers\Mongodb\Eloquent\Model;
+use Throwable;
 
 /**
- * Demande de rendez-vous d'un citoyen auprès d'un atelier (collection "rendez_vous").
- * date (Y-m-d) et heure (H:i) sont en heure locale de l'atelier (Atelier::FUSEAU_HORAIRE),
- * stockées en chaînes : le tri lexicographique correspond au tri chronologique.
+ * Modèle RendezVous — représente un rendez-vous de réparation.
+ *
+ * Champs : vetement_id, atelier_id, service_id, user_id,
+ *          date_rdv, duree, statut, commentaire.
  */
 class RendezVous extends Model
 {
+    /* ---------------------------------------------------------------
+     |  Constantes de statut
+     |--------------------------------------------------------------- */
     public const STATUT_EN_ATTENTE = 'en_attente';
 
     public const STATUT_CONFIRME = 'confirme';
 
-    public const STATUT_REFUSE = 'refuse';
+    public const STATUT_ANNULE = 'annule';
 
     public const STATUT_TERMINE = 'termine';
-
-    public const STATUT_ANNULE = 'annule';
 
     public const STATUTS = [
         self::STATUT_EN_ATTENTE,
         self::STATUT_CONFIRME,
-        self::STATUT_REFUSE,
-        self::STATUT_TERMINE,
         self::STATUT_ANNULE,
-    ];
-
-    /**
-     * Statuts qui occupent un créneau de l'atelier (un RDV refusé ou annulé le libère).
-     */
-    public const STATUTS_OCCUPANT_CRENEAU = [
-        self::STATUT_EN_ATTENTE,
-        self::STATUT_CONFIRME,
         self::STATUT_TERMINE,
     ];
 
-    /**
-     * Seules transitions autorisées : statut actuel => statuts suivants possibles.
-     */
-    public const TRANSITIONS = [
-        self::STATUT_EN_ATTENTE => [self::STATUT_CONFIRME, self::STATUT_REFUSE],
-        self::STATUT_CONFIRME => [self::STATUT_TERMINE, self::STATUT_ANNULE],
+    /** Liste prédéfinie des ateliers disponibles (id => nom) */
+    public const ATELIERS = [
+        'couture-plus'   => 'Couture Plus',
+        'atelier-vert'   => "L'Atelier Vert",
+        'fil-et-aiguille' => 'Fil & Aiguille',
+    ];
+
+    /** Liste prédéfinie des services disponibles (id => nom) */
+    public const SERVICES = [
+        'retouche-simple'    => 'Retouche simple',
+        'reparation-denim'   => 'Réparation denim',
+        'upcycling'          => 'Upcycling créatif',
+        'raccommodage'       => 'Raccommodage',
+        'ajustement-taille'  => 'Ajustement de taille',
     ];
 
     /**
-     * Durée retenue quand le service n'a pas de duree_estimee exploitable.
+     * Ateliers proposés au formulaire : ateliers actifs en base, sinon la liste de démonstration.
+     *
+     * @return array<string, string>
      */
-    public const DUREE_PAR_DEFAUT = 30;
+    public static function catalogueAteliers(): array
+    {
+        try {
+            $reels = Atelier::where('statut', Atelier::STATUT_ACTIF)->orderBy('nom')->get();
+            if ($reels->isNotEmpty()) {
+                return $reels->mapWithKeys(fn (Atelier $atelier) => [(string) $atelier->getKey() => $atelier->nom])->all();
+            }
+        } catch (Throwable $e) {
+            // Mongo indisponible : on retombe sur la liste de démonstration.
+        }
 
-    private const ID_FIELDS = ['user_id', 'atelier_id', 'service_id', 'vetement_id'];
+        return self::ATELIERS;
+    }
 
-    private const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    /**
+     * Services proposés au formulaire : catalogue réel des ateliers actifs, sinon la liste de démonstration.
+     *
+     * @return array<string, string>
+     */
+    public static function catalogueServices(): array
+    {
+        try {
+            $ateliers = Atelier::where('statut', Atelier::STATUT_ACTIF)->orderBy('nom')->get();
+            if ($ateliers->isNotEmpty()) {
+                $services = [];
+                foreach ($ateliers as $atelier) {
+                    foreach ($atelier->services as $service) {
+                        $services[(string) $service->getKey()] = $atelier->nom.' — '.$service->nom;
+                    }
+                }
+                if ($services !== []) {
+                    return $services;
+                }
+            }
+        } catch (Throwable $e) {
+            // Mongo indisponible : on retombe sur la liste de démonstration.
+        }
 
+        return self::SERVICES;
+    }
+
+    /* ---------------------------------------------------------------
+     |  Configuration MongoDB
+     |--------------------------------------------------------------- */
     protected $connection = 'mongodb';
 
     protected $collection = 'rendez_vous';
 
     protected $fillable = [
-        'user_id',
+        'vetement_id',
         'atelier_id',
         'service_id',
-        'vetement_id',
-        'date',
-        'heure',
-        'duree_minutes',
-        'notes',
+        'user_id',
+        'date_rdv',
+        'duree',
         'statut',
-        'motif',
+        'commentaire',
     ];
 
     protected $casts = [
-        'duree_minutes' => 'integer',
+        'date_rdv'   => 'datetime',
+        'duree'      => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -88,17 +127,18 @@ class RendezVous extends Model
         'statut' => self::STATUT_EN_ATTENTE,
     ];
 
-    protected static function booted(): void
+    /* ---------------------------------------------------------------
+     |  Relations
+     |--------------------------------------------------------------- */
+
+    /** Le vêtement concerné par le rendez-vous */
+    public function vetement(): BelongsTo
     {
-        static::saving(function (RendezVous $rdv) {
-            foreach (self::ID_FIELDS as $champ) {
-                $valeur = $rdv->attributes[$champ] ?? null;
-                $rdv->attributes[$champ] = $valeur === null || $valeur === '' ? null : (string) $valeur;
-            }
-        });
+        return $this->belongsTo(Vetement::class, 'vetement_id', '_id');
     }
 
-    public function client(): BelongsTo
+    /** L'utilisateur propriétaire du rendez-vous */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', '_id');
     }
@@ -113,86 +153,114 @@ class RendezVous extends Model
         return $this->belongsTo(Service::class, 'service_id', '_id');
     }
 
-    public function vetement(): BelongsTo
-    {
-        return $this->belongsTo(Vetement::class, 'vetement_id', '_id');
-    }
+    /* ---------------------------------------------------------------
+     |  Accesseurs & helpers
+     |--------------------------------------------------------------- */
 
+    /** Libellé lisible du statut */
     public function statutLabel(): string
     {
-        return self::libelleStatut((string) $this->statut);
-    }
-
-    public static function libelleStatut(string $statut): string
-    {
-        return match ($statut) {
-            self::STATUT_CONFIRME => 'Confirmé',
-            self::STATUT_REFUSE => 'Refusé',
-            self::STATUT_TERMINE => 'Terminé',
-            self::STATUT_ANNULE => 'Annulé',
-            default => 'En attente',
+        return match ($this->statut) {
+            self::STATUT_CONFIRME  => 'Confirmé',
+            self::STATUT_ANNULE   => 'Annulé',
+            self::STATUT_TERMINE  => 'Terminé',
+            default               => 'En attente',
         };
     }
 
+    /** Couleur (tone) associée au statut pour le badge */
     public function statutTone(): string
     {
         return match ($this->statut) {
-            self::STATUT_CONFIRME => 'blue',
-            self::STATUT_TERMINE => 'green',
-            self::STATUT_REFUSE, self::STATUT_ANNULE => 'purple',
-            default => 'orange',
+            self::STATUT_CONFIRME => 'green',
+            self::STATUT_ANNULE  => 'red',
+            self::STATUT_TERMINE => 'gray',
+            default              => 'orange',
         };
     }
 
-    public static function transitionAutorisee(string $de, string $vers): bool
+    /** Nom de l'atelier à partir de l'ID (liste de démo ou fiche atelier réelle). */
+    public function atelierNom(): string
     {
-        return in_array($vers, self::TRANSITIONS[$de] ?? [], true);
-    }
-
-    public function peutPasserA(string $statut): bool
-    {
-        return self::transitionAutorisee((string) $this->statut, $statut);
-    }
-
-    public function dureeMinutes(): int
-    {
-        $duree = (int) $this->duree_minutes;
-
-        return $duree > 0 ? $duree : self::DUREE_PAR_DEFAUT;
-    }
-
-    public function debut(): ?CarbonImmutable
-    {
-        return self::moment((string) $this->date, (string) $this->heure);
-    }
-
-    public function heureFin(): ?string
-    {
-        return $this->debut()?->addMinutes($this->dureeMinutes())->format('H:i');
-    }
-
-    public function dateFormatee(): string
-    {
-        $debut = $this->debut();
-
-        if (! $debut) {
-            return (string) $this->date;
+        if (isset(self::ATELIERS[$this->atelier_id])) {
+            return self::ATELIERS[$this->atelier_id];
         }
 
-        return ucfirst(Atelier::jourDe($debut)).' '.$debut->day.' '.self::MOIS[$debut->month - 1].' '.$debut->year;
-    }
-
-    /**
-     * Combine une date Y-m-d et une heure H:i en heure locale de l'atelier ; null si mal formées.
-     */
-    public static function moment(string $date, string $heure): ?CarbonImmutable
-    {
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $heure)) {
-            return null;
+        try {
+            $nom = $this->atelier?->nom;
+            if (is_string($nom) && $nom !== '') {
+                return $nom;
+            }
+        } catch (Throwable $e) {
         }
 
-        $moment = CarbonImmutable::createFromFormat('!Y-m-d H:i', $date.' '.$heure, Atelier::FUSEAU_HORAIRE);
+        return $this->atelier_id ?? '—';
+    }
 
-        return $moment && $moment->format('Y-m-d H:i') === $date.' '.$heure ? $moment : null;
+    /** Nom du service à partir de l'ID (liste de démo ou prestation réelle). */
+    public function serviceNom(): string
+    {
+        if (empty($this->service_id)) {
+            return '—';
+        }
+
+        if (isset(self::SERVICES[$this->service_id])) {
+            return self::SERVICES[$this->service_id];
+        }
+
+        try {
+            $nom = $this->service?->nom;
+            if (is_string($nom) && $nom !== '') {
+                return $nom;
+            }
+        } catch (Throwable $e) {
+        }
+
+        return $this->service_id;
+    }
+
+    /** Durée formatée en heures et minutes */
+    public function dureeFormatee(): string
+    {
+        $heures = intdiv($this->duree, 60);
+        $minutes = $this->duree % 60;
+
+        if ($heures > 0 && $minutes > 0) {
+            return "{$heures}h{$minutes}min";
+        }
+
+        if ($heures > 0) {
+            return "{$heures}h";
+        }
+
+        return "{$minutes} min";
+    }
+
+    /* ---------------------------------------------------------------
+     |  Vérifications de permissions par statut
+     |--------------------------------------------------------------- */
+
+    /** Vérifie si le RDV peut être modifié */
+    public function peutEtreModifie(): bool
+    {
+        return $this->statut === self::STATUT_EN_ATTENTE;
+    }
+
+    /** Vérifie si le RDV peut être annulé */
+    public function peutEtreAnnule(): bool
+    {
+        return in_array($this->statut, [
+            self::STATUT_EN_ATTENTE,
+            self::STATUT_CONFIRME,
+        ], true);
+    }
+
+    /** Vérifie si le RDV peut être supprimé */
+    public function peutEtreSupprime(): bool
+    {
+        return in_array($this->statut, [
+            self::STATUT_EN_ATTENTE,
+            self::STATUT_ANNULE,
+        ], true);
     }
 }

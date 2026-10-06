@@ -62,7 +62,7 @@
                     </button>
                 @endif
                 <a href="{{ $ficheUrl }}" class="btn btn-secondary small" aria-label="Voir la fiche de {{ $atelier->nom }}">Voir</a>
-                <a href="{{ route('front.rdv', ['atelier' => $id]) }}" class="btn btn-primary small" aria-label="Prendre RDV chez {{ $atelier->nom }}">
+                <a href="{{ route('front.rdv.create', ['atelier_id' => $id]) }}" class="btn btn-primary small" aria-label="Prendre RDV chez {{ $atelier->nom }}">
                     <i data-lucide="calendar-plus" aria-hidden="true"></i> Prendre RDV
                 </a>
             </div>

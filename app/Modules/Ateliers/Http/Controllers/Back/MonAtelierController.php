@@ -8,7 +8,6 @@ use App\Modules\Ateliers\Http\Requests\UpdateMonAtelierRequest;
 use App\Modules\Ateliers\Services\AtelierService;
 use App\Modules\Ateliers\Support\HorairesFormulaire;
 use App\Modules\Core\Http\Controllers\Concerns\RendersBackOffice;
-use App\Modules\RendezVous\Services\RendezVousService;
 use Illuminate\Http\Request;
 
 class MonAtelierController extends Controller
@@ -18,7 +17,6 @@ class MonAtelierController extends Controller
 
     public function __construct(
         private AtelierService $ateliers,
-        private RendezVousService $rendezVous,
     ) {
         $this->reserverAuRoleAtelier();
     }
@@ -39,7 +37,6 @@ class MonAtelierController extends Controller
             'compte' => $request->user(),
             'nbServices' => $atelier->services->count(),
             'horaires' => HorairesFormulaire::pourFormulaire(old('horaires', $atelier->horairesSemaine())),
-            'resumeRdv' => $this->rendezVous->resumeAtelier($atelier),
         ]);
     }
 

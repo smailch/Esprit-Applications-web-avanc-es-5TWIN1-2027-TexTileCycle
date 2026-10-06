@@ -97,7 +97,7 @@ class AteliersFrontPagesTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Ateliers près de', false)
-            ->assertSee(route('front.rdv', ['atelier' => self::ID_MARSA]), false)
+            ->assertSee(route('front.rdv.create', ['atelier_id' => self::ID_MARSA]), false)
             ->assertSee(route('front.ateliers.show', ['id' => self::ID_VERT]), false)
             ->assertSee('Prendre RDV chez L&#039;Atelier Vert', false)
             ->assertSee('à partir de <strong>10 TND</strong>', false)
@@ -109,7 +109,7 @@ class AteliersFrontPagesTest extends TestCase
             ->assertDontSee('meilleur match', false)
             ->assertDontSee('compatibilité', false);
 
-        $this->assertStringContainsString('/rendez-vous?atelier='.self::ID_MARSA, $response->getContent());
+        $this->assertStringContainsString('/rendez-vous/create?atelier_id='.self::ID_MARSA, $response->getContent());
     }
 
     public function test_marqueurs_json_inline_proteges_contre_l_injection_de_script(): void
@@ -205,7 +205,7 @@ class AteliersFrontPagesTest extends TestCase
         $response->assertOk()
             ->assertSee('<h1>L&#039;Atelier Vert</h1>', false)
             ->assertSee('href="tel:+21671774210"', false)
-            ->assertSee(e(route('front.rdv', ['atelier' => self::ID_VERT, 'service' => self::ID_SERVICE])), false)
+            ->assertSee(e(route('front.rdv.create', ['atelier_id' => self::ID_VERT, 'service_id' => self::ID_SERVICE])), false)
             ->assertSee('Prendre RDV pour « Upcycling créatif » chez L&#039;Atelier Vert', false)
             ->assertSee('65 TND')
             ->assertSee('45 min')
