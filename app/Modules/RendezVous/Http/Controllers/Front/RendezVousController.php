@@ -78,6 +78,7 @@ class RendezVousController extends Controller
         return view('rendez-vous.create', array_merge($this->donneesFormulaire(), [
             'atelierPreselect' => request('atelier_id', request('atelier')),
             'servicePreselect' => request('service_id', request('service')),
+            'vetementPreselect' => request('vetement_id', request('vetement')),
         ]));
     }
 

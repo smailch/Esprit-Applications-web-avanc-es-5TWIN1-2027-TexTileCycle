@@ -1,6 +1,11 @@
 @php
     $id = (string) $atelier->getKey();
+    $listQuery = $listQuery ?? [];
     $ficheUrl = route('front.ateliers.show', ['id' => $id] + $listQuery);
+    $rdvUrl = route('front.rdv.create', array_filter([
+        'atelier_id' => $id,
+        'vetement_id' => $listQuery['vetement_id'] ?? null,
+    ]));
     $distance = \App\Modules\Ateliers\Services\AtelierService::formatDistance($atelier->distance_km);
     $prixMin = $atelier->prixMinimal();
     $services = $atelier->services->pluck('nom')->filter()->unique()->values();
@@ -62,7 +67,7 @@
                     </button>
                 @endif
                 <a href="{{ $ficheUrl }}" class="btn btn-secondary small" aria-label="Voir la fiche de {{ $atelier->nom }}">Voir</a>
-                <a href="{{ route('front.rdv.create', ['atelier_id' => $id]) }}" class="btn btn-primary small" aria-label="Prendre RDV chez {{ $atelier->nom }}">
+                <a href="{{ $rdvUrl }}" class="btn btn-primary small" aria-label="Prendre RDV chez {{ $atelier->nom }}">
                     <i data-lucide="calendar-plus" aria-hidden="true"></i> Prendre RDV
                 </a>
             </div>

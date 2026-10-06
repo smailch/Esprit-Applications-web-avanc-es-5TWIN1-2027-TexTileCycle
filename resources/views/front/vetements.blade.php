@@ -12,13 +12,18 @@
     </div>
 
     @if($vetements->isNotEmpty())
+    @php($vetementAReparer = $vetements->first(fn ($v) => $v->intended_action === 'reparation'))
     <div class="ai-banner">
         <i data-lucide="sparkles"></i>
         <div>
             <strong>Suggestion intelligente</strong>
-            <p>Consultez les ateliers partenaires pour faire réparer vos pièces.</p>
+            @if($vetementAReparer)
+                <p>Trouvez un atelier pour réparer « {{ $vetementAReparer->displayName() }} ». Le rendez-vous sera prérempli.</p>
+            @else
+                <p>Consultez les ateliers partenaires pour faire réparer vos pièces.</p>
+            @endif
         </div>
-        <a href="{{ route('front.ateliers') }}" class="link-button">Voir l'atelier <i data-lucide="arrow-right"></i></a>
+        <a href="{{ $vetementAReparer?->nextStepUrl() ?? route('front.ateliers') }}" class="link-button">Trouver un atelier <i data-lucide="arrow-right"></i></a>
     </div>
     @endif
 

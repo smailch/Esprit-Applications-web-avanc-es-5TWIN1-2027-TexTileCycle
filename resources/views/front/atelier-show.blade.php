@@ -9,7 +9,12 @@
 
 @php
     $id = (string) $atelier->getKey();
-    $rdvUrl = route('front.rdv.create', ['atelier_id' => $id]);
+    $listQuery = $listQuery ?? [];
+    $rdvParams = array_filter([
+        'atelier_id' => $id,
+        'vetement_id' => $listQuery['vetement_id'] ?? null,
+    ]);
+    $rdvUrl = route('front.rdv.create', $rdvParams);
     $telLien = $atelier->telephoneLien();
     $semaine = $atelier->horairesSemaine();
     $prixMin = $atelier->prixMinimal();
@@ -29,6 +34,16 @@
     <a href="{{ $retourUrl }}" class="link-button atelier-show__back">
         <i data-lucide="arrow-left" aria-hidden="true"></i> Retour à la liste des ateliers
     </a>
+
+    @if ($vetementPourRdv ?? null)
+        <div class="ai-banner">
+            <i data-lucide="shirt"></i>
+            <div>
+                <strong>Réparation de « {{ $vetementPourRdv->displayName() }} »</strong>
+                <p>Ce vêtement sera déjà sélectionné dans le formulaire de rendez-vous avec cet atelier.</p>
+            </div>
+        </div>
+    @endif
 
     <header class="atelier-hero">
         <div class="atelier-avatar atelier-avatar--lg atelier-avatar--{{ $atelier->avatarTone() }}" aria-hidden="true">{{ $atelier->initiales() }}</div>
@@ -109,7 +124,7 @@
                                     @if ($service->prixFormate())
                                         <p class="service-row__price"><span class="sr-only">Prix estimé : </span>{{ $service->prixFormate() }}</p>
                                     @endif
-                                    <a href="{{ route('front.rdv.create', ['atelier_id' => $id, 'service_id' => (string) $service->getKey()]) }}" class="btn btn-secondary small" aria-label="Prendre RDV pour « {{ $service->nom }} » chez {{ $atelier->nom }}">
+                                    <a href="{{ route('front.rdv.create', $rdvParams + ['service_id' => (string) $service->getKey()]) }}" class="btn btn-secondary small" aria-label="Prendre RDV pour « {{ $service->nom }} » chez {{ $atelier->nom }}">
                                         Réserver
                                     </a>
                                 </div>

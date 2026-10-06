@@ -178,7 +178,7 @@ class Vetement extends Model
     {
         return match ($this->intended_action) {
             self::ACTION_DON => route('front.dons'),
-            self::ACTION_REPARATION => route('front.ateliers'),
+            self::ACTION_REPARATION => route('front.ateliers', ['vetement_id' => (string) $this->getKey()]),
             default => null,
         };
     }

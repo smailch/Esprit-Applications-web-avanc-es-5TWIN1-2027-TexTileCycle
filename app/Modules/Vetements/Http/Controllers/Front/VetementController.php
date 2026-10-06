@@ -5,6 +5,7 @@ namespace App\Modules\Vetements\Http\Controllers\Front;
 use App\Http\Controllers\Controller;
 use App\Modules\Vetements\Http\Requests\StoreVetementRequest;
 use App\Modules\Vetements\Http\Requests\UpdateIntendedActionRequest;
+use App\Modules\Vetements\Models\Vetement;
 use App\Modules\Vetements\Services\VetementService;
 use Illuminate\Http\RedirectResponse;
 
@@ -35,9 +36,7 @@ class VetementController extends Controller
 
         $message = '« '.$vetement->displayName().' » a été déclaré — parcours '.$vetement->intendedActionLabel().'.';
 
-        return redirect()
-            ->route('front.vetements')
-            ->with('success', $message);
+        return $this->redirectApresParcours($vetement, $message);
     }
 
     public function updateAction(UpdateIntendedActionRequest $request, string $vetement): RedirectResponse
@@ -50,8 +49,19 @@ class VetementController extends Controller
 
         $model = $this->vetements->applyIntendedAction($model, $request->validated('intended_action'));
 
+        return $this->redirectApresParcours($model, 'Parcours mis à jour : '.$model->intendedActionLabel().'.');
+    }
+
+    private function redirectApresParcours(Vetement $vetement, string $message): RedirectResponse
+    {
+        if ($vetement->intended_action === Vetement::ACTION_REPARATION) {
+            return redirect()
+                ->route('front.ateliers', ['vetement_id' => (string) $vetement->getKey()])
+                ->with('success', $message.' Choisissez un atelier : le rendez-vous sera prérempli.');
+        }
+
         return redirect()
             ->route('front.vetements')
-            ->with('success', 'Parcours mis à jour : '.$model->intendedActionLabel().'.');
+            ->with('success', $message);
     }
 }

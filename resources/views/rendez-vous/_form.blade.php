@@ -25,7 +25,7 @@
                 <option value="">Sélectionner un vêtement</option>
                 @foreach($vetements as $vetement)
                     <option value="{{ $vetement->getKey() }}"
-                        {{ old('vetement_id', $isEdit ? $rendezVous->vetement_id : '') == $vetement->getKey() ? 'selected' : '' }}>
+                        {{ old('vetement_id', $isEdit ? $rendezVous->vetement_id : ($vetementPreselect ?? '')) == $vetement->getKey() ? 'selected' : '' }}>
                         {{ $vetement->displayName() }}
                     </option>
                 @endforeach

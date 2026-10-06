@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\Ateliers\Http\Requests\SearchAteliersRequest;
 use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Services\AtelierService;
+use App\Modules\Vetements\Models\Vetement;
+use App\Modules\Vetements\Services\VetementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -17,14 +19,16 @@ class AtelierController extends Controller
     /**
      * Paramètres de la liste conservés vers la fiche et pour le lien retour.
      */
-    private const LIST_QUERY_KEYS = ['q', 'service', 'ville', 'note_min', 'rayon_km', 'lat', 'lng', 'tri', 'page'];
+    private const LIST_QUERY_KEYS = ['q', 'service', 'ville', 'note_min', 'rayon_km', 'lat', 'lng', 'tri', 'page', 'vetement_id'];
 
     public const RAYONS_KM = [2, 5, 10, 20, 50];
 
     public const NOTES_MIN = ['3', '3.5', '4', '4.5'];
 
-    public function __construct(private AtelierService $ateliers)
-    {
+    public function __construct(
+        private AtelierService $ateliers,
+        private VetementService $vetements,
+    ) {
     }
 
     public function index(SearchAteliersRequest $request)
@@ -32,13 +36,14 @@ class AtelierController extends Controller
         $filters = $this->filters($request);
         $listQuery = $this->listQuery($request);
         $ateliers = $this->ateliers->search($filters, self::PER_PAGE);
+        $vetementPourRdv = $this->vetementPourRdv($request);
 
         return view('front.ateliers', [
             'ateliers' => $ateliers,
             'total' => $ateliers->total(),
             'filters' => $filters,
             'hasPosition' => isset($filters['lat'], $filters['lng']),
-            'activeFilters' => $this->activeFilters($filters),
+            'activeFilters' => $this->activeFilters($filters, $listQuery),
             'serviceNames' => $this->ateliers->serviceNames(),
             'villes' => $this->ateliers->villes(),
             'markers' => $this->withUrls($this->ateliers->markers($filters), $listQuery),
@@ -46,6 +51,7 @@ class AtelierController extends Controller
             'rayons' => self::RAYONS_KM,
             'notesMin' => self::NOTES_MIN,
             'jour' => Atelier::jourDe(Atelier::maintenant()),
+            'vetementPourRdv' => $vetementPourRdv,
         ]);
     }
 
@@ -54,12 +60,16 @@ class AtelierController extends Controller
         $atelier = $this->ateliers->findActifOrFail($id);
         $marker = $this->ateliers->toMarkers(collect([$atelier]));
 
+        $listQuery = $this->listQuery($request);
+
         return view('front.atelier-show', [
             'atelier' => $atelier,
             'markers' => $marker,
-            'retourUrl' => route('front.ateliers', $this->listQuery($request)),
+            'retourUrl' => route('front.ateliers', $listQuery),
             'jour' => Atelier::jourDe(Atelier::maintenant()),
             'ouvert' => $atelier->estOuvert(),
+            'listQuery' => $listQuery,
+            'vetementPourRdv' => $this->vetementPourRdv($request),
         ]);
     }
 
@@ -80,10 +90,31 @@ class AtelierController extends Controller
      */
     private function listQuery(Request $request): array
     {
-        return array_filter(
+        $query = array_filter(
             Arr::only($request->query(), self::LIST_QUERY_KEYS),
             fn ($v) => is_string($v) && $v !== '' && mb_strlen($v) <= 100
         );
+
+        if (isset($query['vetement_id']) && ! preg_match('/^[0-9a-fA-F]{24}$/', $query['vetement_id'])) {
+            unset($query['vetement_id']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Vêtement à réparer choisi par le citoyen, conservé tout au long de la recherche d'atelier.
+     */
+    private function vetementPourRdv(Request $request): ?Vetement
+    {
+        $id = $this->listQuery($request)['vetement_id'] ?? null;
+        $user = $request->user();
+
+        if (! $id || ! $user) {
+            return null;
+        }
+
+        return $this->vetements->findOwnedByUser($id, $user);
     }
 
     /**
@@ -102,9 +133,12 @@ class AtelierController extends Controller
      *
      * @return list<array{label: string, url: string}>
      */
-    private function activeFilters(array $filters): array
+    private function activeFilters(array $filters, array $listQuery = []): array
     {
         $base = Arr::except($filters, ['page']);
+        if (isset($listQuery['vetement_id'])) {
+            $base['vetement_id'] = $listQuery['vetement_id'];
+        }
         $sans = fn (array $cles) => route('front.ateliers', Arr::except($base, $cles));
         $puces = [];
 

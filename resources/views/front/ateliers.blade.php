@@ -21,9 +21,21 @@
                         <strong>{{ $total }}</strong> {{ $total > 1 ? 'ateliers partenaires' : 'atelier partenaire' }} pour réparer, retoucher et transformer vos vêtements.
                     @endif
                 </p>
+                @if ($vetementPourRdv ?? null)
+                    <div class="ai-banner" style="margin-top:16px">
+                        <i data-lucide="shirt"></i>
+                        <div>
+                            <strong>Réparation de « {{ $vetementPourRdv->displayName() }} »</strong>
+                            <p>Choisissez un atelier : le formulaire de rendez-vous sera déjà rempli avec ce vêtement et l'atelier.</p>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <form class="ateliers-search" method="get" action="{{ route('front.ateliers') }}" role="search" aria-label="Rechercher un atelier" data-filters-form>
+                @if (! empty($listQuery['vetement_id']))
+                    <input type="hidden" name="vetement_id" value="{{ $listQuery['vetement_id'] }}">
+                @endif
                 <div class="ateliers-search__main">
                     <label for="atelier-q" class="sr-only">Rechercher par nom d'atelier, ville, spécialité ou service</label>
                     <div class="ateliers-search__field">
@@ -92,7 +104,7 @@
                             <i data-lucide="{{ $hasPosition ? 'locate-fixed' : 'locate' }}" aria-hidden="true"></i>
                             <span data-locate-label>{{ $hasPosition ? 'Position utilisée' : 'Me localiser' }}</span>
                         </button>
-                        <a href="{{ route('front.ateliers') }}" class="btn btn-secondary reset-btn" data-ajax-link>
+                        <a href="{{ route('front.ateliers', array_filter(['vetement_id' => $listQuery['vetement_id'] ?? null])) }}" class="btn btn-secondary reset-btn" data-ajax-link>
                             <i data-lucide="rotate-ccw" aria-hidden="true"></i> Réinitialiser
                         </a>
                     </div>
@@ -136,7 +148,7 @@
                         <div class="ateliers-empty__icon" aria-hidden="true"><i data-lucide="search-x"></i></div>
                         <h2>Aucun atelier trouvé</h2>
                         <p>Essayez un autre mot-clé, élargissez le rayon ou retirez un filtre.</p>
-                        <a href="{{ route('front.ateliers') }}" class="btn btn-primary" data-ajax-link>
+                        <a href="{{ route('front.ateliers', array_filter(['vetement_id' => $listQuery['vetement_id'] ?? null])) }}" class="btn btn-primary" data-ajax-link>
                             <i data-lucide="rotate-ccw" aria-hidden="true"></i> Réinitialiser les filtres
                         </a>
                     </div>
