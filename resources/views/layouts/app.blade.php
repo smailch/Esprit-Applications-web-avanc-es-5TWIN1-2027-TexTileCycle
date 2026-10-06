@@ -14,8 +14,10 @@
 </head>
 <body>
     @yield('body')
+    <x-confirm-dialog />
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="{{ asset('js/app.js') }}"></script>
+    <script src="{{ asset('js/confirm-dialog.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

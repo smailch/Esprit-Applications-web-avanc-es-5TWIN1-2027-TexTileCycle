@@ -80,7 +80,8 @@
                                 </a>
                                 <form method="POST"
                                       action="{{ route('back.associations.destroy', $asso->_id) }}"
-                                      onsubmit="return confirm('Supprimer « {{ $asso->nom }} » ?')">
+                                      data-confirm="L'association « {{ $asso->nom }} » et sa fiche seront définitivement supprimées."
+                                      data-confirm-title="Supprimer cette association ?">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="icon-btn danger" title="Supprimer">
                                         <i data-lucide="trash-2"></i>

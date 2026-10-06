@@ -89,7 +89,10 @@
                                             </button>
                                             <form method="POST"
                                                   action="{{ route('front.dons.destroy', $don->_id) }}"
-                                                  onsubmit="return confirm('Annuler cette proposition ?')">
+                                                  data-confirm="Votre proposition de don sera retirée et l'association ne la verra plus."
+                                                  data-confirm-title="Annuler cette proposition ?"
+                                                  data-confirm-button="Oui, annuler le don"
+                                                  data-confirm-tone="warning">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="icon-btn danger" title="Annuler">
                                                     <i data-lucide="x"></i>

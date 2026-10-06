@@ -99,7 +99,9 @@
                                     <label><input type="checkbox" name="is_active" value="1" @checked($user->is_active)> Actif</label>
                                     <button type="submit" class="btn btn-secondary small">Enregistrer</button>
                                 </form>
-                                <form method="post" action="{{ route('back.users.destroy', $user->getKey()) }}" style="margin-top:8px" onsubmit="return confirm('Supprimer cet utilisateur ?')">
+                                <form method="post" action="{{ route('back.users.destroy', $user->getKey()) }}" style="margin-top:8px"
+                                      data-confirm="Le compte de {{ $user->name }} ({{ $user->email }}) sera définitivement supprimé."
+                                      data-confirm-title="Supprimer cet utilisateur ?">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-secondary small" style="color:#c62828;border-color:#ef9a9a">Supprimer</button>

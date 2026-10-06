@@ -90,7 +90,12 @@
                                 ] as $cible => [$titre, $icone, $classe, $libelle])
                                     @continue($p['statut'] === $cible)
                                     <form method="post" action="{{ route('back.partenaires.statut', [$type, $p['id']]) }}"
-                                          @if($cible === 'suspendu') onsubmit="return confirm('Suspendre {{ addslashes($p['nom']) }} ? Il ne sera plus visible par les citoyens.')" @endif>
+                                          @if($cible === 'suspendu')
+                                              data-confirm="« {{ $p['nom'] }} » ne sera plus visible par les citoyens et ne pourra plus recevoir de demandes."
+                                              data-confirm-title="Suspendre ce partenaire ?"
+                                              data-confirm-button="Suspendre"
+                                              data-confirm-tone="warning"
+                                          @endif>
                                         @csrf
                                         @method('PATCH')
                                         <input type="hidden" name="statut" value="{{ $cible }}">

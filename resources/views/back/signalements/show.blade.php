@@ -24,7 +24,9 @@
         <a href="{{ route('back.signalements.index') }}" class="link-button"><i data-lucide="arrow-left"></i> Retour aux signalements</a>
         <div class="row-actions">
             <a href="{{ route('back.signalements.edit', $signalement->getKey()) }}" class="btn btn-secondary small"><i data-lucide="pencil"></i> Modifier</a>
-            <form method="post" action="{{ route('back.signalements.destroy', $signalement->getKey()) }}" onsubmit="return confirm('Supprimer définitivement ce signalement ? Cette action est irréversible.')">
+            <form method="post" action="{{ route('back.signalements.destroy', $signalement->getKey()) }}"
+                  data-confirm="Ce signalement et sa note de modération seront définitivement supprimés. Cette action est irréversible."
+                  data-confirm-title="Supprimer ce signalement ?">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-secondary small btn-danger"><i data-lucide="trash-2"></i> Supprimer</button>

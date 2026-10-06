@@ -101,7 +101,10 @@
                                     {{-- Refuser --}}
                                     <form method="POST"
                                           action="{{ route('back.dons.refuse', $don->_id) }}"
-                                          onsubmit="return confirm('Refuser ce don ?')">
+                                          data-confirm="Le donateur sera informé que sa proposition n'a pas été retenue."
+                                          data-confirm-title="Refuser ce don ?"
+                                          data-confirm-button="Refuser le don"
+                                          data-confirm-tone="warning">
                                         @csrf
                                         <button type="submit" class="btn btn-danger small" title="Refuser">
                                             <i data-lucide="x"></i> Refuser
@@ -111,7 +114,8 @@
                                     {{-- Supprimer --}}
                                     <form method="POST"
                                           action="{{ route('back.dons.destroy', $don->_id) }}"
-                                          onsubmit="return confirm('Supprimer ce don ?')">
+                                          data-confirm="Ce don sera définitivement supprimé. Cette action est irréversible."
+                                          data-confirm-title="Supprimer ce don ?">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="icon-btn danger" title="Supprimer">
                                             <i data-lucide="trash-2"></i>

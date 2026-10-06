@@ -83,7 +83,9 @@
                             <div class="row-actions">
                                 <a href="{{ route('back.signalements.show', $signalement->getKey()) }}" class="icon-btn" title="Voir le détail" aria-label="Voir"><i data-lucide="eye"></i></a>
                                 <a href="{{ route('back.signalements.edit', $signalement->getKey()) }}" class="icon-btn" title="Modifier" aria-label="Modifier"><i data-lucide="pencil"></i></a>
-                                <form method="post" action="{{ route('back.signalements.destroy', $signalement->getKey()) }}" onsubmit="return confirm('Supprimer définitivement ce signalement ?')">
+                                <form method="post" action="{{ route('back.signalements.destroy', $signalement->getKey()) }}"
+                                      data-confirm="Le signalement sur « {{ $signalement->cibleLabel() }} » sera définitivement supprimé."
+                                      data-confirm-title="Supprimer ce signalement ?">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="icon-btn btn-danger" title="Supprimer" aria-label="Supprimer"><i data-lucide="trash-2"></i></button>
