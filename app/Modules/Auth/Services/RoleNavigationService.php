@@ -44,6 +44,7 @@ class RoleNavigationService
             User::ROLE_ATELIER => [
                 'back.dashboard',
                 'back.vetements',
+                'back.vetements.*',
                 'back.ateliers',
                 'back.ateliers.*',
                 'back.rdv',
@@ -53,7 +54,9 @@ class RoleNavigationService
             User::ROLE_ASSOCIATION => [
                 'back.dashboard',
                 'back.dons',
+                'back.dons.*',
                 'back.associations',
+                'back.associations.*',
                 'back.parametres',
             ],
             default => [],
@@ -90,16 +93,101 @@ class RoleNavigationService
 
         $patterns = self::allowedRoutePatterns($user);
 
-        return array_values(array_filter(
+        $items = array_values(array_filter(
             self::allMenuItems(),
             fn (array $item) => collect($patterns)->contains(
                 fn (string $pattern) => Str::is($pattern, $item['route'])
             )
         ));
+
+        if ($user->role === User::ROLE_ATELIER) {
+            return self::relabelMenuForAtelier($items);
+        }
+
+        if ($user->role === User::ROLE_ASSOCIATION) {
+            return self::relabelMenuForAssociation($items);
+        }
+
+        return $items;
+    }
+
+    /**
+     * Libellés du menu pour un compte atelier (ses pièces et ses rendez-vous).
+     *
+     * @param  list<array{label:string,route:string,icon:string,module:string}>  $items
+     * @return list<array{label:string,route:string,icon:string,module:string}>
+     */
+    public static function relabelMenuForAtelier(array $items): array
+    {
+        return array_map(function (array $item) {
+            $item['label'] = match ($item['route']) {
+                'back.vetements' => 'Pièces à traiter',
+                'back.rdv' => 'Mes rendez-vous',
+                'back.ateliers' => 'Mon atelier',
+                default => $item['label'],
+            };
+
+            return $item;
+        }, $items);
+    }
+
+    public static function relabelMenuForAssociation(array $items): array
+    {
+        return array_map(function (array $item) {
+            $item['label'] = match ($item['route']) {
+                'back.associations' => 'Mon association',
+                'back.dons' => 'Dons reçus',
+                default => $item['label'],
+            };
+
+            return $item;
+        }, $items);
+    }
+
+    /**
+     * Compte atelier actif sans fiche : il doit la créer avant le reste du back-office.
+     */
+    public static function atelierDoitCreerSaFiche(User $user): bool
+    {
+        if ($user->role !== User::ROLE_ATELIER) {
+            return false;
+        }
+
+        try {
+            return app(\App\Modules\Ateliers\Services\AtelierService::class)
+                ->findOwnedByUser((string) $user->getKey()) === null;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Compte association actif sans fiche : il doit la créer avant le reste du back-office.
+     */
+    public static function associationDoitCreerSaFiche(User $user): bool
+    {
+        if ($user->role !== User::ROLE_ASSOCIATION) {
+            return false;
+        }
+
+        try {
+            return app(\App\Modules\Associations\Services\AssociationService::class)
+                ->findOwnedByUser((string) $user->getKey()) === null;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     public static function redirectAfterLogin(User $user): string
     {
+        if (self::atelierDoitCreerSaFiche($user)) {
+            return route('back.ateliers.profil');
+        }
+
+        if (self::associationDoitCreerSaFiche($user)) {
+            return route('back.associations.create');
+        }
+
         if ($user->canAccessBackOffice()) {
             return route('back.dashboard');
         }

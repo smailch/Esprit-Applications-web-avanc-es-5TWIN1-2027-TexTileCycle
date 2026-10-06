@@ -6,9 +6,12 @@
         <div>
             <p class="kicker">Mon espace citoyen</p>
             <h1>Mes vêtements</h1>
-            <p class="muted">Suivez toutes vos pièces et leur parcours.</p>
+            <p class="muted">Suivez vos pièces en cours. Les réparations et dons validés passent dans l'historique.</p>
         </div>
-        <button type="button" class="btn btn-primary" data-open-modal="clothing-modal"><i data-lucide="plus"></i> Déclarer un vêtement</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a href="{{ route('front.historique') }}" class="btn btn-secondary"><i data-lucide="history"></i> Historique</a>
+            <button type="button" class="btn btn-primary" data-open-modal="clothing-modal"><i data-lucide="plus"></i> Déclarer un vêtement</button>
+        </div>
     </div>
 
     @if($vetements->isNotEmpty())
@@ -59,6 +62,7 @@
                         <span>{{ $vetement->cycleEvents->last()?->title ?? $vetement->statusLabel() }}</span>
                     </div>
                     <div class="card-actions" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                        @unless($vetement->estDansHistorique())
                         <form method="post" action="{{ route('front.vetements.action', $vetement->getKey()) }}" style="display:flex;gap:6px;flex-wrap:wrap">
                             @csrf
                             @method('PATCH')
@@ -72,12 +76,16 @@
                         @if($vetement->nextStepUrl())
                             <a href="{{ $vetement->nextStepUrl() }}" class="btn btn-primary small">{{ $vetement->nextStepLabel() }}</a>
                         @endif
+                        @else
+                            <a href="{{ route('front.historique') }}" class="btn btn-secondary small"><i data-lucide="history"></i> Voir l'historique</a>
+                        @endunless
                     </div>
                 </div>
             </article>
         @empty
             <div class="panel" style="grid-column:1/-1;padding:32px;text-align:center;color:var(--muted)">
-                Aucun vêtement déclaré. Cliquez sur « Déclarer un vêtement » pour commencer.
+                <p>Aucun vêtement en cours.</p>
+                <p style="margin-top:8px">Les pièces réparées ou données se retrouvent dans <a href="{{ route('front.historique') }}" style="color:var(--green);font-weight:600">l'historique du cycle de vie</a>.</p>
             </div>
         @endforelse
     </div>

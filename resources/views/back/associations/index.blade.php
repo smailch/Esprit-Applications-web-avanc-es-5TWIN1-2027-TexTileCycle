@@ -5,6 +5,7 @@
 @section('content')
 <div class="module">
 
+    @if(empty($espaceAssociation))
     {{-- Toolbar --}}
     <div class="module-toolbar">
         <form method="GET" class="filter-row" id="filter-form">
@@ -21,6 +22,7 @@
             <i data-lucide="plus"></i> Nouvelle association
         </a>
     </div>
+    @endif
 
     {{-- Table --}}
     <div class="panel table-panel">
@@ -78,6 +80,7 @@
                                    class="icon-btn" title="Modifier">
                                     <i data-lucide="pencil"></i>
                                 </a>
+                                @if(auth()->user()?->isAdmin())
                                 <form method="POST"
                                       action="{{ route('back.associations.destroy', $asso->_id) }}"
                                       onsubmit="return confirm('Supprimer « {{ $asso->nom }} » ?')">
@@ -86,6 +89,7 @@
                                         <i data-lucide="trash-2"></i>
                                     </button>
                                 </form>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -95,9 +99,11 @@
                             <div class="empty-state compact">
                                 <i data-lucide="heart-handshake"></i>
                                 <p>Aucune association enregistrée.</p>
+                                @if(empty($espaceAssociation))
                                 <a href="{{ route('back.associations.create') }}" class="btn btn-primary small">
                                     Ajouter la première
                                 </a>
+                                @endif
                             </div>
                         </td>
                     </tr>

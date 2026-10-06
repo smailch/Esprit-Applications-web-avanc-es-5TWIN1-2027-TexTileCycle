@@ -16,6 +16,7 @@ Route::get('/ateliers', [AtelierController::class, 'index'])->name('ateliers');
 // Espace du rôle atelier (vérification du rôle dans les contrôleurs) : déclaré avant les routes admin à {id}.
 Route::prefix('ateliers')->name('ateliers.')->group(function () use ($atelierObjectId) {
     Route::get('/mon-profil', [MonAtelierController::class, 'edit'])->name('profil');
+    Route::post('/mon-profil', [MonAtelierController::class, 'store'])->name('profil.store');
     Route::put('/mon-profil', [MonAtelierController::class, 'update'])->name('profil.update');
 
     Route::get('/mes-services', [MonServiceController::class, 'index'])->name('services');

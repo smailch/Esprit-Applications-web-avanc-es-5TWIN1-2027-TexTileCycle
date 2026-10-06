@@ -31,6 +31,13 @@ class User extends Authenticatable
         self::ROLE_ADMIN,
     ];
 
+    /** Rôles proposés à l'inscription publique (jamais administrateur). */
+    public const ROLES_INSCRIPTION = [
+        self::ROLE_CITOYEN,
+        self::ROLE_ATELIER,
+        self::ROLE_ASSOCIATION,
+    ];
+
     protected $connection = 'mongodb';
 
     protected $collection = 'users';
@@ -90,9 +97,42 @@ class User extends Authenticatable
         return $this->role === self::ROLE_CITOYEN;
     }
 
+    /**
+     * Un document Mongo sans champ is_active reste utilisable (comptes historiques).
+     * Seule la valeur booléenne false bloque le compte.
+     */
+    public function isActive(): bool
+    {
+        return $this->is_active !== false;
+    }
+
+    public function needsAdministrativeValidation(): bool
+    {
+        return in_array($this->role, [self::ROLE_ATELIER, self::ROLE_ASSOCIATION], true);
+    }
+
+    public function isPendingValidation(): bool
+    {
+        return $this->needsAdministrativeValidation() && ! $this->isActive();
+    }
+
+    public static function isActiveOnRegistration(string $role): bool
+    {
+        return ! in_array($role, [self::ROLE_ATELIER, self::ROLE_ASSOCIATION], true);
+    }
+
+    public function inactiveAccountMessage(): string
+    {
+        if ($this->isPendingValidation()) {
+            return 'Votre compte '.$this->roleLabel().' est en attente de validation administrative.';
+        }
+
+        return 'Votre compte a été désactivé.';
+    }
+
     public function canAccessBackOffice(): bool
     {
-        return in_array($this->role, [
+        return $this->isActive() && in_array($this->role, [
             self::ROLE_ATELIER,
             self::ROLE_ASSOCIATION,
             self::ROLE_ADMIN,

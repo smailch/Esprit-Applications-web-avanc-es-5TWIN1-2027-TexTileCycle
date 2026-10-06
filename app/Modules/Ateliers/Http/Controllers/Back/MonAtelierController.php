@@ -4,7 +4,9 @@ namespace App\Modules\Ateliers\Http\Controllers\Back;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Ateliers\Http\Controllers\Back\Concerns\GereEspaceAtelier;
+use App\Modules\Ateliers\Http\Requests\StoreMonAtelierRequest;
 use App\Modules\Ateliers\Http\Requests\UpdateMonAtelierRequest;
+use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Services\AtelierService;
 use App\Modules\Ateliers\Support\HorairesFormulaire;
 use App\Modules\Core\Http\Controllers\Concerns\RendersBackOffice;
@@ -26,7 +28,7 @@ class MonAtelierController extends Controller
         $atelier = $this->monAtelier($request);
 
         if (! $atelier) {
-            return $this->vueAtelierNonConfigure();
+            return $this->vueCreationPremiereFiche($request);
         }
 
         $this->authorize('update', $atelier);
@@ -38,6 +40,21 @@ class MonAtelierController extends Controller
             'nbServices' => $atelier->services->count(),
             'horaires' => HorairesFormulaire::pourFormulaire(old('horaires', $atelier->horairesSemaine())),
         ]);
+    }
+
+    public function store(StoreMonAtelierRequest $request)
+    {
+        if ($this->monAtelier($request)) {
+            return redirect()->route('back.ateliers.profil');
+        }
+
+        $this->authorize('create', Atelier::class);
+
+        $this->ateliers->createOwn((string) $request->user()->getKey(), $request->validated());
+
+        return redirect()
+            ->route('back.ateliers.profil')
+            ->with('success', 'Votre atelier a été créé. Il sera visible sur le site après validation administrative.');
     }
 
     /**

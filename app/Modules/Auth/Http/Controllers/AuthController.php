@@ -24,7 +24,7 @@ class AuthController extends Controller
 
     public function loginStore(LoginRequest $request)
     {
-        $user = $this->users->verifyCredentials(
+        $user = $this->users->findAuthenticatable(
             $request->input('email'),
             $request->input('password')
         );
@@ -32,7 +32,13 @@ class AuthController extends Controller
         if (! $user) {
             return back()
                 ->withInput($request->only('email'))
-                ->withErrors(['email' => 'Identifiants incorrects ou compte inactif.']);
+                ->withErrors(['email' => 'Identifiants incorrects.']);
+        }
+
+        if (! $user->isActive()) {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => $user->inactiveAccountMessage()]);
         }
 
         Auth::login($user, $request->boolean('remember'));
@@ -49,6 +55,12 @@ class AuthController extends Controller
     public function registerStore(RegisterRequest $request)
     {
         $user = $this->users->create($request->validated());
+
+        if (! $user->isActive()) {
+            return redirect()
+                ->route('front.login')
+                ->with('success', 'Votre compte '.$user->roleLabel().' a été créé. Il sera activé après validation administrative.');
+        }
 
         Auth::login($user);
         $request->session()->regenerate();

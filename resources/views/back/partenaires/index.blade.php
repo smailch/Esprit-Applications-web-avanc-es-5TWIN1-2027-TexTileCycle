@@ -23,6 +23,8 @@
         @endforeach
     </nav>
 
+    <p class="muted" style="margin:0 0 12px">Valider un partenaire active aussi le compte responsable. Suspendre ou remettre en attente le désactive : il ne pourra plus se connecter.</p>
+
     <div class="module-toolbar">
         <div class="chips">
             <a href="{{ route('back.partenaires.index', ['type' => $type, 'q' => $search]) }}" @class(['chip', 'active' => ! $statut])>

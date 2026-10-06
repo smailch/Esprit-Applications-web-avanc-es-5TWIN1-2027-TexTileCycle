@@ -82,12 +82,12 @@ class AteliersPoliciesTest extends TestCase
         $this->assertFalse($gate->allows('update', $this->atelier(self::ID_AUTRE)));
     }
 
-    public function test_atelier_ne_peut_ni_creer_ni_supprimer_ni_changer_le_statut(): void
+    public function test_atelier_peut_creer_sa_fiche_mais_pas_supprimer_ni_changer_le_statut(): void
     {
         $gate = Gate::forUser($this->user(User::ROLE_ATELIER, self::ID_PROPRIO));
 
         $this->assertFalse($gate->allows('viewAny', Atelier::class));
-        $this->assertFalse($gate->allows('create', Atelier::class));
+        $this->assertTrue($gate->allows('create', Atelier::class));
         $this->assertFalse($gate->allows('delete', $this->atelier()));
         $this->assertFalse($gate->allows('changerStatut', $this->atelier()));
     }

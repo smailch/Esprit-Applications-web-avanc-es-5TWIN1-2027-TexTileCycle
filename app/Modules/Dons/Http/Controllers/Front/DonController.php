@@ -6,10 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Modules\Associations\Models\Association;
 use App\Modules\Dons\Models\Don;
 use App\Modules\Vetements\Models\Vetement;
+use App\Modules\Vetements\Services\VetementService;
 use Illuminate\Http\Request;
 
 class DonController extends Controller
 {
+    public function __construct(
+        private VetementService $vetements
+    ) {
+    }
+
     /** Page de proposition de don : liste les associations + vêtements du citoyen. */
     public function index(Request $request)
     {
@@ -54,8 +60,7 @@ class DonController extends Controller
             ->where('user_id', $user->_id)
             ->firstOrFail();
 
-        // Vérifier que l'association existe et est active
-        Association::where('_id', $data['association_id'])
+        $association = Association::where('_id', $data['association_id'])
             ->where('statut', Association::STATUT_ACTIF)
             ->firstOrFail();
 
@@ -76,8 +81,7 @@ class DonController extends Controller
             'statut'         => Don::STATUT_EN_ATTENTE,
         ]);
 
-        // Mettre le vêtement en statut "donné" si accepté (pour l'instant juste marqué)
-        $vetement->update(['intended_action' => Vetement::ACTION_DON]);
+        $this->vetements->enregistrerPropositionDon($vetement, $association->nom);
 
         return back()->with('success', 'Votre proposition de don a été envoyée avec succès !');
     }

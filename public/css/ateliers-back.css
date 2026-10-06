@@ -842,6 +842,7 @@ a.tc-pagination__link:hover {
 }
 
 .ab-setup-steps li.is-pending { color: var(--muted); font-weight: 500; }
+.ab-setup-steps li.is-current { color: var(--green-dark); }
 .ab-setup-steps svg { width: 16px; height: 16px; }
 
 /* ---------- Responsive ---------- */

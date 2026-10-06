@@ -48,9 +48,9 @@ class PartenaireController extends Controller
         }
 
         $message = match ($data['statut']) {
-            PartenaireService::STATUT_ACTIF => 'Partenaire validé : il est désormais visible par les citoyens.',
-            PartenaireService::STATUT_SUSPENDU => 'Partenaire suspendu.',
-            default => 'Partenaire remis en attente de validation.',
+            PartenaireService::STATUT_ACTIF => 'Partenaire validé : le compte responsable peut se connecter et la fiche est visible par les citoyens.',
+            PartenaireService::STATUT_SUSPENDU => 'Partenaire suspendu : le compte responsable ne peut plus se connecter.',
+            default => 'Partenaire remis en attente : le compte responsable est de nouveau inactif.',
         };
 
         return back()->with('success', $message);

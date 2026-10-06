@@ -4,18 +4,27 @@
 
 @section('content')
 <div class="module">
+    @include('back.partials.flash')
     <div class="panel form-panel" style="max-width:760px;margin:0 auto">
 
         {{-- En-tête style modal --}}
         <div class="modal-head" style="margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)">
             <div>
-                <p class="kicker">{{ $association ? 'Modifier' : 'Nouveau' }}</p>
+                <p class="kicker">{{ ($premiereFiche ?? false) ? 'Première connexion' : ($association ? 'Modifier' : 'Nouveau') }}</p>
                 <h2 style="font-size:22px;margin:0">{{ $pageTitle }}</h2>
             </div>
-            <a href="{{ route('back.associations') }}" class="icon-btn" title="Retour">
-                <i data-lucide="x"></i>
-            </a>
+            @unless($premiereFiche ?? false)
+                <a href="{{ route('back.associations') }}" class="icon-btn" title="Retour">
+                    <i data-lucide="x"></i>
+                </a>
+            @endunless
         </div>
+
+        @if($premiereFiche ?? false)
+            <div class="panel" style="margin-bottom:20px;padding:14px 18px;background:#fff8e1;border:1px solid #ffe082">
+                <p style="margin:0">Votre compte a été validé. Renseignez votre association : elle restera <b>en attente</b> jusqu'à validation par l'administrateur, puis sera visible pour les dons.</p>
+            </div>
+        @endif
 
         <form method="POST"
               action="{{ $association ? route('back.associations.update', $association->_id) : route('back.associations.store') }}"
@@ -124,10 +133,12 @@
 
             {{-- ── Actions ── --}}
             <div class="modal-actions">
-                <a href="{{ route('back.associations') }}" class="btn btn-secondary">Annuler</a>
+                @unless($premiereFiche ?? false)
+                    <a href="{{ route('back.associations') }}" class="btn btn-secondary">Annuler</a>
+                @endunless
                 <button type="submit" class="btn btn-primary">
                     <i data-lucide="save"></i>
-                    {{ $association ? 'Enregistrer les modifications' : 'Créer l\'association' }}
+                    {{ $association ? 'Enregistrer les modifications' : (($premiereFiche ?? false) ? 'Créer mon association' : 'Créer l\'association') }}
                 </button>
             </div>
         </form>

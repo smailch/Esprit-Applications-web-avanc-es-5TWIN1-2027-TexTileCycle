@@ -37,7 +37,7 @@
 
         {{-- Sélection de l'atelier --}}
         <label>Atelier
-            <select name="atelier_id" required>
+            <select name="atelier_id" id="rdv-atelier" required>
                 <option value="">Sélectionner</option>
                 @foreach($ateliers as $id => $nom)
                     <option value="{{ $id }}"
@@ -55,7 +55,7 @@
     <div class="form-grid">
         {{-- Sélection du service --}}
         <label>Service
-            <select name="service_id">
+            <select name="service_id" id="rdv-service" data-services-par-atelier='@json($servicesParAtelier ?? [])'>
                 <option value="">Aucun (optionnel)</option>
                 @foreach($services as $id => $nom)
                     <option value="{{ $id }}"
@@ -114,3 +114,29 @@
         </button>
     </div>
 </form>
+
+@if(! empty($servicesParAtelier))
+<script>
+(function () {
+    var atelier = document.getElementById('rdv-atelier');
+    var service = document.getElementById('rdv-service');
+    if (!atelier || !service) return;
+    var map = {};
+    try { map = JSON.parse(service.getAttribute('data-services-par-atelier') || '{}'); } catch (e) { return; }
+    var selected = service.value;
+    function fill(atelierId) {
+        var options = map[atelierId] || {};
+        service.innerHTML = '<option value="">Aucun (optionnel)</option>';
+        Object.keys(options).forEach(function (id) {
+            var opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = options[id];
+            if (id === selected) opt.selected = true;
+            service.appendChild(opt);
+        });
+    }
+    atelier.addEventListener('change', function () { selected = ''; fill(this.value); });
+    if (atelier.value) fill(atelier.value);
+})();
+</script>
+@endif

@@ -17,13 +17,17 @@ class UserService
 
     public function create(array $data): User
     {
+        $role = $data['role'] ?? User::ROLE_CITOYEN;
+
         return User::create([
             'name' => $data['name'],
             'email' => mb_strtolower($data['email']),
             'password' => $data['password'],
-            'role' => $data['role'] ?? User::ROLE_CITOYEN,
+            'role' => $role,
             'phone' => $data['phone'] ?? null,
-            'is_active' => $data['is_active'] ?? true,
+            'is_active' => array_key_exists('is_active', $data)
+                ? (bool) $data['is_active']
+                : User::isActiveOnRegistration($role),
         ]);
     }
 
@@ -49,18 +53,47 @@ class UserService
         $user->delete();
     }
 
-    public function verifyCredentials(string $email, string $password): ?User
+    /**
+     * Compte dont le mot de passe est correct, y compris s'il est encore inactif.
+     */
+    public function findAuthenticatable(string $email, string $password): ?User
     {
         $user = User::where('email', mb_strtolower($email))->first();
 
-        if (! $user || ! $user->is_active) {
-            return null;
-        }
-
-        if (! Hash::check($password, $user->password)) {
+        if (! $user || ! Hash::check($password, $user->password)) {
             return null;
         }
 
         return $user;
+    }
+
+    public function verifyCredentials(string $email, string $password): ?User
+    {
+        $user = $this->findAuthenticatable($email, $password);
+
+        if (! $user || ! $user->isActive()) {
+            return null;
+        }
+
+        return $user;
+    }
+
+    /**
+     * Aligne le compte propriétaire sur le statut partenaire (actif / en attente / suspendu).
+     */
+    public function syncActiveFromPartnerStatut(?string $userId, string $statut): void
+    {
+        if ($userId === null || $userId === '') {
+            return;
+        }
+
+        $user = User::find($userId);
+
+        if (! $user || $user->isAdmin()) {
+            return;
+        }
+
+        $user->is_active = $statut === 'actif';
+        $user->save();
     }
 }

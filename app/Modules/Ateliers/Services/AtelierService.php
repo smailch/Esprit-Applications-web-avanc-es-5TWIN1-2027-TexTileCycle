@@ -5,6 +5,7 @@ namespace App\Modules\Ateliers\Services;
 use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Models\Service;
 use App\Modules\Auth\Models\User;
+use App\Modules\Auth\Services\UserService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -353,12 +354,33 @@ class AtelierService
         $atelier->statut = $statut;
         $atelier->save();
 
+        app(UserService::class)->syncActiveFromPartnerStatut(
+            $atelier->user_id !== null ? (string) $atelier->user_id : null,
+            $statut
+        );
+
         return $atelier;
     }
 
     // ---------------------------------------------------------------------
     // Atelier connecté
     // ---------------------------------------------------------------------
+
+    public function createOwn(string $userId, array $data): Atelier
+    {
+        if (Atelier::query()->where('user_id', $userId)->exists()) {
+            throw ValidationException::withMessages([
+                'nom' => 'Votre fiche atelier existe déjà. Vous pouvez la modifier depuis votre profil.',
+            ]);
+        }
+
+        unset($data['statut'], $data['user_id']);
+
+        return $this->create(array_merge($data, [
+            'user_id' => $userId,
+            'statut' => Atelier::STATUT_EN_ATTENTE,
+        ]));
+    }
 
     public function findOwnedByUser(string $userId): ?Atelier
     {

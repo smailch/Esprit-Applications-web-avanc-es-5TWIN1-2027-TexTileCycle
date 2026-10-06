@@ -3,6 +3,7 @@
 namespace App\Modules\Ateliers\Http\Controllers\Back\Concerns;
 
 use App\Modules\Ateliers\Models\Atelier;
+use App\Modules\Ateliers\Support\HorairesFormulaire;
 use App\Modules\Auth\Models\User;
 use Closure;
 use Illuminate\Http\Request;
@@ -35,15 +36,25 @@ trait GereEspaceAtelier
         return $this->ateliers->findOwnedByUser((string) $request->user()->getKey());
     }
 
+    protected function vueCreationPremiereFiche(Request $request)
+    {
+        return $this->backView('back.ateliers.espace.creer', [
+            'pageTitle' => 'Créer mon atelier',
+            'atelier' => new Atelier(['statut' => Atelier::STATUT_EN_ATTENTE]),
+            'compte' => $request->user(),
+            'horaires' => HorairesFormulaire::pourFormulaire(old('horaires')),
+        ]);
+    }
+
     protected function vueAtelierNonConfigure()
     {
-        return $this->backView('back.ateliers.espace.vide', ['pageTitle' => 'Mon atelier']);
+        return $this->vueCreationPremiereFiche(request());
     }
 
     protected function redirectionAtelierNonConfigure()
     {
         return redirect()
             ->route('back.ateliers.profil')
-            ->with('error', "Votre atelier n'est pas encore configuré. Contactez l'administrateur.");
+            ->with('info', 'Créez d\'abord la fiche de votre atelier pour continuer.');
     }
 }

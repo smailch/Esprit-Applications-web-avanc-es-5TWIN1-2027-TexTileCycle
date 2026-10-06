@@ -4,6 +4,8 @@
     $onglets = [
         'profil' => ['route' => 'back.ateliers.profil', 'label' => 'Mon profil', 'icon' => 'store'],
         'services' => ['route' => 'back.ateliers.services', 'label' => 'Mes services', 'icon' => 'scissors'],
+        'rdv' => ['route' => 'back.rdv', 'label' => 'Rendez-vous', 'icon' => 'calendar-days'],
+        'pieces' => ['route' => 'back.vetements', 'label' => 'Pièces à traiter', 'icon' => 'shirt'],
     ];
 @endphp
 
@@ -37,6 +39,10 @@
                 {{ $item['label'] }}
                 @if ($cle === 'services')
                     <span class="ab-tab__count" aria-label="{{ $nbServices }} {{ $nbServices > 1 ? 'services' : 'service' }}">{{ $nbServices }}</span>
+                @elseif ($cle === 'rdv' && isset($nbRdv) && $nbRdv !== null)
+                    <span class="ab-tab__count">{{ $nbRdv }}</span>
+                @elseif ($cle === 'pieces' && isset($nbPieces) && $nbPieces !== null)
+                    <span class="ab-tab__count">{{ $nbPieces }}</span>
                 @endif
             </a>
         @endforeach

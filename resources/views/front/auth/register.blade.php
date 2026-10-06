@@ -5,7 +5,7 @@
     <div class="auth-card">
         <p class="kicker">Rejoindre TexTileCycle</p>
         <h1>Inscription</h1>
-        <p class="muted">Créez votre compte citoyen en quelques secondes.</p>
+        <p class="muted">Choisissez le type de compte. Les ateliers et associations sont activés après validation administrative.</p>
 
         @if($errors->any())
             <div class="field-error" style="margin-top:16px">
@@ -34,10 +34,13 @@
                 <input type="password" id="password_confirmation" name="password_confirmation" placeholder="••••••••" required minlength="8">
             </div>
             <div class="field">
-                <label for="role">Rôle</label>
+                <label for="role">Type de compte</label>
                 <select id="role" name="role" required>
-                    <option value="citoyen" @selected(old('role', 'citoyen') === 'citoyen')>Citoyen</option>
+                    <option value="citoyen" @selected(old('role', 'citoyen') === 'citoyen')>Citoyen — dépôt, réparation, dons</option>
+                    <option value="atelier" @selected(old('role') === 'atelier')>Atelier — réparation (validation admin)</option>
+                    <option value="association" @selected(old('role') === 'association')>Association — dons (validation admin)</option>
                 </select>
+                <p class="muted small" style="margin-top:8px">Le rôle administrateur n'est pas disponible à l'inscription.</p>
             </div>
             <div class="actions">
                 <button type="submit" class="btn btn-primary full">Créer mon compte</button>

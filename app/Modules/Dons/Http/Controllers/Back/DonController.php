@@ -5,12 +5,18 @@ namespace App\Modules\Dons\Http\Controllers\Back;
 use App\Http\Controllers\Controller;
 use App\Modules\Core\Http\Controllers\Concerns\RendersBackOffice;
 use App\Modules\Dons\Models\Don;
+use App\Modules\Vetements\Services\VetementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class DonController extends Controller
 {
     use RendersBackOffice;
+
+    public function __construct(
+        private VetementService $vetements
+    ) {
+    }
 
     /** Liste des dons (admin voit tout, association voit les siens). */
     public function index(Request $request)
@@ -57,9 +63,10 @@ class DonController extends Controller
             'date_reponse' => Carbon::now(),
         ]);
 
-        // Mettre à jour le statut du vêtement
+        $don->load(['vetement', 'association']);
+
         if ($don->vetement) {
-            $don->vetement->update(['status' => \App\Modules\Vetements\Models\Vetement::STATUS_DONNE]);
+            $this->vetements->cloturerParDon($don->vetement, $don->association?->nom);
         }
 
         return back()->with('success', 'Don accepté avec succès.');
@@ -78,6 +85,12 @@ class DonController extends Controller
             'statut'       => Don::STATUT_REFUSE,
             'date_reponse' => Carbon::now(),
         ]);
+
+        $don->load(['vetement', 'association']);
+
+        if ($don->vetement) {
+            $this->vetements->enregistrerRefusDon($don->vetement, $don->association?->nom);
+        }
 
         return back()->with('success', 'Don refusé.');
     }

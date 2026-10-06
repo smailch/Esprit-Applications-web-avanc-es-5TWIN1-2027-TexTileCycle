@@ -263,4 +263,67 @@ class RendezVous extends Model
             self::STATUT_ANNULE,
         ], true);
     }
+
+    /**
+     * Transitions autorisées pour l'atelier qui reçoit le rendez-vous.
+     *
+     * @return list<string>
+     */
+    public function transitionsAtelier(): array
+    {
+        return match ($this->statut) {
+            self::STATUT_EN_ATTENTE => [self::STATUT_CONFIRME, self::STATUT_ANNULE],
+            self::STATUT_CONFIRME => [self::STATUT_TERMINE, self::STATUT_ANNULE],
+            default => [],
+        };
+    }
+
+    public function appartientALatelier(string $atelierId): bool
+    {
+        return $this->atelier_id !== null && (string) $this->atelier_id === (string) $atelierId;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function catalogueServicesPourAtelier(?string $atelierId): array
+    {
+        if ($atelierId === null || $atelierId === '') {
+            return self::catalogueServices();
+        }
+
+        try {
+            $atelier = Atelier::query()->with('services')->find($atelierId);
+            if ($atelier && $atelier->services->isNotEmpty()) {
+                return $atelier->services
+                    ->mapWithKeys(fn (Service $service) => [(string) $service->getKey() => $service->nom])
+                    ->all();
+            }
+        } catch (Throwable $e) {
+        }
+
+        return self::catalogueServices();
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    public static function catalogueServicesParAtelier(): array
+    {
+        try {
+            $ateliers = Atelier::query()->where('statut', Atelier::STATUT_ACTIF)->with('services')->orderBy('nom')->get();
+            $map = [];
+            foreach ($ateliers as $atelier) {
+                $map[(string) $atelier->getKey()] = $atelier->services
+                    ->mapWithKeys(fn (Service $service) => [(string) $service->getKey() => $service->nom])
+                    ->all();
+            }
+            if ($map !== []) {
+                return $map;
+            }
+        } catch (Throwable $e) {
+        }
+
+        return [];
+    }
 }

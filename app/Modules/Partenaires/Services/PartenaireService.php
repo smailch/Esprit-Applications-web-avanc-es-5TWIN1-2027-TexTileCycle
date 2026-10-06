@@ -2,6 +2,7 @@
 
 namespace App\Modules\Partenaires\Services;
 
+use App\Modules\Auth\Services\UserService;
 use App\Modules\Core\Support\MongoCollections;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -89,12 +90,25 @@ class PartenaireService
             throw new InvalidArgumentException("Statut partenaire invalide : {$statut}");
         }
 
-        $result = MongoCollections::get($this->collection($type))->updateOne(
+        $collection = MongoCollections::get($this->collection($type));
+        $doc = $collection->findOne(MongoCollections::idFilter($id), MongoCollections::arrayTypeMap());
+
+        if (! $doc) {
+            return false;
+        }
+
+        $collection->updateOne(
             MongoCollections::idFilter($id),
             ['$set' => ['statut' => $statut, 'updated_at' => new UTCDateTime()]]
         );
 
-        return $result->getMatchedCount() > 0;
+        $userId = $doc['user_id'] ?? null;
+        app(UserService::class)->syncActiveFromPartnerStatut(
+            $userId !== null ? (string) $userId : null,
+            $statut
+        );
+
+        return true;
     }
 
     public function collection(string $type): string

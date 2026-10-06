@@ -8,6 +8,7 @@ use App\Modules\Vetements\Http\Requests\UpdateIntendedActionRequest;
 use App\Modules\Vetements\Models\Vetement;
 use App\Modules\Vetements\Services\VetementService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class VetementController extends Controller
 {
@@ -18,9 +19,26 @@ class VetementController extends Controller
 
     public function index()
     {
-        $vetements = $this->vetements->listForOwner(auth()->user());
+        $vetements = $this->vetements->listActifsForOwner(auth()->user());
 
         return view('front.vetements', compact('vetements'));
+    }
+
+    public function historique(Request $request)
+    {
+        $filtre = $request->query('statut');
+        $vetements = $this->vetements->listHistoriqueForOwner(auth()->user(), $filtre);
+
+        return view('front.historique', [
+            'vetements' => $vetements,
+            'filtre' => $filtre,
+            'filtres' => [
+                '' => 'Tous',
+                Vetement::STATUS_REPARE => 'Réparés',
+                Vetement::STATUS_DONNE => 'Donnés',
+                Vetement::STATUS_RECYCLE => 'Recyclés',
+            ],
+        ]);
     }
 
     public function store(StoreVetementRequest $request): RedirectResponse

@@ -6,7 +6,7 @@
         <p class="kicker">Espace citoyen</p>
         <h1>Connexion</h1>
         <p class="muted">Accédez à vos vêtements, rendez-vous et dons.</p>
-        <p class="muted small" style="margin-top:8px">Comptes <strong>atelier / association / admin</strong> : vous serez redirigé vers l'espace professionnel après connexion.</p>
+        <p class="muted small" style="margin-top:8px">Comptes <strong>atelier / association</strong> : connexion possible uniquement après validation administrative. Les administrateurs accèdent ensuite à l'espace professionnel.</p>
 
         @if($errors->any())
             <div class="field-error" style="margin-top:16px">

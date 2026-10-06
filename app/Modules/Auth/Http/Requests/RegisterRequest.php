@@ -26,7 +26,7 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:190', Rule::unique(User::class, 'email')],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', Rule::in([User::ROLE_CITOYEN])],
+            'role' => ['required', Rule::in(User::ROLES_INSCRIPTION)],
         ];
     }
 
@@ -39,6 +39,8 @@ class RegisterRequest extends FormRequest
             'password.required' => 'Le mot de passe est obligatoire.',
             'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
             'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
+            'role.required' => 'Choisissez le type de compte.',
+            'role.in' => 'Choisissez un rôle parmi citoyen, atelier ou association.',
         ];
     }
 }

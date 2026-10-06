@@ -21,7 +21,7 @@
     @endif
 
     <div class="module-toolbar">
-        <p class="muted" style="margin:0">Comptes MongoDB — collection <code>users</code></p>
+        <p class="muted" style="margin:0">Les comptes atelier et association inscrits en ligne restent <b>en attente</b> jusqu'à ce que vous cochiez « Actif ». La fiche partenaire (visibilité citoyens) se valide ensuite dans Partenaires.</p>
     </div>
 
     <div class="panel" style="margin-bottom:24px;padding:20px">
@@ -77,8 +77,14 @@
                         <td>{{ $user->email }}</td>
                         <td>{{ $user->roleLabel() }}</td>
                         <td>
-                            <x-status-badge :tone="$user->is_active ? 'green' : 'orange'">
-                                {{ $user->is_active ? 'Actif' : 'Inactif' }}
+                            <x-status-badge :tone="$user->isActive() ? 'green' : 'orange'">
+                                @if($user->isPendingValidation())
+                                    En attente
+                                @elseif($user->isActive())
+                                    Actif
+                                @else
+                                    Inactif
+                                @endif
                             </x-status-badge>
                         </td>
                         <td>
@@ -96,7 +102,7 @@
                                         @endforeach
                                     </select>
                                     <input type="text" name="phone" value="{{ $user->phone }}" placeholder="Téléphone">
-                                    <label><input type="checkbox" name="is_active" value="1" @checked($user->is_active)> Actif</label>
+                                    <label><input type="checkbox" name="is_active" value="1" @checked($user->isActive())> Actif (validation administrative)</label>
                                     <button type="submit" class="btn btn-secondary small">Enregistrer</button>
                                 </form>
                                 <form method="post" action="{{ route('back.users.destroy', $user->getKey()) }}" style="margin-top:8px" onsubmit="return confirm('Supprimer cet utilisateur ?')">

@@ -36,6 +36,13 @@ class Vetement extends Model
         self::STATUS_RECYCLE,
     ];
 
+    /** Pièces clôturées : visibles dans l'historique du cycle de vie. */
+    public const STATUTS_HISTORIQUE = [
+        self::STATUS_REPARE,
+        self::STATUS_DONNE,
+        self::STATUS_RECYCLE,
+    ];
+
     /** @var list<string> */
     public const MATERIALS = [
         'Coton',
@@ -56,6 +63,7 @@ class Vetement extends Model
 
     protected $fillable = [
         'user_id',
+        'atelier_id',
         'type',
         'size',
         'condition_label',
@@ -79,6 +87,11 @@ class Vetement extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', '_id');
+    }
+
+    public function atelier(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Ateliers\Models\Atelier::class, 'atelier_id', '_id');
     }
 
     public function cycleEvents(): HasMany
@@ -189,6 +202,33 @@ class Vetement extends Model
             self::ACTION_DON => 'Proposer un don',
             self::ACTION_REPARATION => 'Trouver un atelier',
             default => null,
+        };
+    }
+
+    public static function estStatutHistorique(?string $status): bool
+    {
+        return in_array($status, self::STATUTS_HISTORIQUE, true);
+    }
+
+    public function estDansHistorique(): bool
+    {
+        return self::estStatutHistorique($this->status);
+    }
+
+    public function appartientALatelier(string $atelierId): bool
+    {
+        return $this->atelier_id !== null && (string) $this->atelier_id === (string) $atelierId;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function traitementsAtelier(): array
+    {
+        return match ($this->status) {
+            self::STATUS_EN_ATTENTE => [self::STATUS_EN_REPARATION],
+            self::STATUS_EN_REPARATION => [self::STATUS_REPARE],
+            default => [],
         };
     }
 }

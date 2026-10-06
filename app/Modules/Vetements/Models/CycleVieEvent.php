@@ -40,4 +40,34 @@ class CycleVieEvent extends Model
     {
         return $this->belongsTo(Vetement::class, 'vetement_id', '_id');
     }
+
+    public function icon(): string
+    {
+        if ($this->step_key === self::STEP_DECLARE) {
+            return 'plus-circle';
+        }
+
+        if ($this->step_key === self::STEP_ANALYSE) {
+            return 'route';
+        }
+
+        if ($this->step_key === self::STEP_TERMINE) {
+            return match ($this->status_snapshot) {
+                Vetement::STATUS_DONNE => 'gift',
+                Vetement::STATUS_RECYCLE => 'recycle',
+                default => 'check-circle-2',
+            };
+        }
+
+        return match ($this->status_snapshot) {
+            Vetement::STATUS_EN_REPARATION => 'wrench',
+            Vetement::STATUS_DONNE => 'heart-handshake',
+            default => 'circle-dot',
+        };
+    }
+
+    public function occurredLabel(): string
+    {
+        return $this->occurred_at?->format('d/m/Y · H:i') ?? '';
+    }
 }

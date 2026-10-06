@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\RendezVous\Http\Requests\StoreRendezVousRequest;
 use App\Modules\RendezVous\Http\Requests\UpdateRendezVousRequest;
 use App\Modules\RendezVous\Models\RendezVous;
+use App\Modules\RendezVous\Services\RendezVousService;
 use App\Modules\Vetements\Models\Vetement;
 use Illuminate\Http\RedirectResponse;
 
@@ -17,6 +18,10 @@ use Illuminate\Http\RedirectResponse;
  */
 class RendezVousController extends Controller
 {
+    public function __construct(
+        private RendezVousService $rendezVousService
+    ) {
+    }
     /* ---------------------------------------------------------------
      |  Helpers privés
      |--------------------------------------------------------------- */
@@ -39,15 +44,14 @@ class RendezVousController extends Controller
     private function donneesFormulaire(): array
     {
         $userId = (string) auth()->id();
-        $vetements = Vetement::where(function ($query) use ($userId) {
-            $query->where('user_id', $userId)
-                  ->orWhere('user_id', auth()->id());
-        })->orderBy('type')->get();
+        $vetements = Vetement::where('user_id', $userId)->orderBy('type')->get();
+        $atelierPreselect = request('atelier_id', request('atelier'));
 
         return [
             'vetements' => $vetements,
             'ateliers' => RendezVous::catalogueAteliers(),
-            'services' => RendezVous::catalogueServices(),
+            'services' => RendezVous::catalogueServicesPourAtelier(is_string($atelierPreselect) ? $atelierPreselect : null),
+            'servicesParAtelier' => RendezVous::catalogueServicesParAtelier(),
         ];
     }
 
@@ -88,15 +92,11 @@ class RendezVousController extends Controller
      */
     public function store(StoreRendezVousRequest $request): RedirectResponse
     {
-        $data = $request->validated();
-        $data['user_id'] = (string) auth()->id();
-        $data['statut'] = RendezVous::STATUT_EN_ATTENTE;
-
-        RendezVous::create($data);
+        $this->rendezVousService->creerPourCitoyen(auth()->user(), $request->validated());
 
         return redirect()
             ->route('front.rdv')
-            ->with('success', 'Votre rendez-vous a été créé avec succès.');
+            ->with('success', 'Votre rendez-vous a été envoyé à l\'atelier. La pièce apparaîtra dans son espace dès confirmation.');
     }
 
     /**

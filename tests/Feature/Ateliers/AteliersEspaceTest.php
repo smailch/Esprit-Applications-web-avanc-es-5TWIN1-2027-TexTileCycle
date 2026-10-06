@@ -133,6 +133,7 @@ class AteliersEspaceTest extends TestCase
     {
         return [
             ['get', '/admin/ateliers/mon-profil'],
+            ['post', '/admin/ateliers/mon-profil'],
             ['put', '/admin/ateliers/mon-profil'],
             ['get', '/admin/ateliers/mes-services'],
             ['post', '/admin/ateliers/mes-services'],
@@ -145,7 +146,7 @@ class AteliersEspaceTest extends TestCase
 
     public function test_un_citoyen_est_renvoye_vers_l_accueil(): void
     {
-        $this->mockAteliers(null)->shouldNotReceive('findOwnedByUser', 'updateOwn');
+        $this->mockAteliers(null)->shouldNotReceive('findOwnedByUser', 'updateOwn', 'createOwn');
         $this->mockCatalogue()->shouldNotReceive('list', 'create', 'update', 'delete', 'find');
 
         $this->actingAs($this->user(User::ROLE_CITOYEN));
@@ -157,7 +158,7 @@ class AteliersEspaceTest extends TestCase
 
     public function test_un_admin_ne_peut_pas_utiliser_l_espace_atelier(): void
     {
-        $this->mockAteliers(null)->shouldNotReceive('findOwnedByUser', 'updateOwn');
+        $this->mockAteliers(null)->shouldNotReceive('findOwnedByUser', 'updateOwn', 'createOwn');
         $this->mockCatalogue()->shouldNotReceive('list', 'create', 'update', 'delete', 'find');
 
         $this->actingAs($this->user(User::ROLE_ADMIN, '652f000000000000000000d1'));
@@ -167,26 +168,50 @@ class AteliersEspaceTest extends TestCase
         }
     }
 
-    public function test_un_atelier_sans_fiche_voit_un_etat_vide_et_ne_peut_rien_ecrire(): void
+    public function test_un_atelier_sans_fiche_doit_la_creer_avant_le_reste(): void
     {
         $this->mockAteliers(null)->shouldNotReceive('updateOwn');
         $this->mockCatalogue()->shouldNotReceive('list', 'create', 'update', 'delete', 'find');
 
         $this->actingAs($this->user());
 
-        foreach (['/admin/ateliers/mon-profil', '/admin/ateliers/mes-services'] as $url) {
-            $this->get($url)
-                ->assertOk()
-                ->assertSee("Votre atelier n'est pas encore configuré. Contactez l'administrateur.", false)
-                ->assertDontSee('data-atelier-form', false);
-        }
+        $this->get('/admin/ateliers/mon-profil')
+            ->assertOk()
+            ->assertSee('Créez la fiche de votre atelier', false)
+            ->assertSee('data-atelier-form', false)
+            ->assertSee('Créer mon atelier', false)
+            ->assertDontSee("Contactez l'administrateur", false);
+
+        $this->get('/admin/ateliers/mes-services')
+            ->assertRedirect(route('back.ateliers.profil'))
+            ->assertSessionHas('info');
+
+        $this->get('/admin')
+            ->assertRedirect(route('back.ateliers.profil'));
 
         $this->put('/admin/ateliers/mon-profil', $this->profilPayload())
             ->assertRedirect(route('back.ateliers.profil'))
-            ->assertSessionHas('error');
+            ->assertSessionHas('info');
 
         $this->post('/admin/ateliers/mes-services', ['nom' => 'Ourlet', 'prix_estime' => 10, 'duree_estimee' => 30])
             ->assertRedirect(route('back.ateliers.profil'));
+    }
+
+    public function test_un_atelier_sans_fiche_peut_creer_son_atelier(): void
+    {
+        $atelier = $this->atelier(Atelier::STATUT_EN_ATTENTE);
+        $ateliers = $this->mockAteliers(null);
+        $ateliers->shouldReceive('createOwn')
+            ->once()
+            ->with(self::ID_USER, Mockery::on(fn (array $data) => ($data['nom'] ?? null) === 'Couture Plus'
+                && ! array_key_exists('statut', $data)
+                && ! array_key_exists('user_id', $data)))
+            ->andReturn($atelier);
+
+        $this->actingAs($this->user())
+            ->post('/admin/ateliers/mon-profil', $this->profilPayload())
+            ->assertRedirect(route('back.ateliers.profil'))
+            ->assertSessionHas('success');
     }
 
     /* -------------------------------------------------------------- Profil */
