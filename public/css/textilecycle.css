@@ -1285,7 +1285,16 @@ label textarea:focus {
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  /* Menu défilable quand il dépasse la hauteur de l'écran (logo et pied restent visibles) */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  margin-right: -6px;
+  padding-right: 6px;
 }
+
+.sidebar > *:not(nav) { flex-shrink: 0; }
 
 .sidebar nav a,
 .sidebar nav button,
