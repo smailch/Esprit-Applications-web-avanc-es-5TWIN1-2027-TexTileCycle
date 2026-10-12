@@ -274,13 +274,18 @@ class AteliersFrontPagesTest extends TestCase
         $service->markers(['q' => 'denim', 'lat' => '36.8', 'lng' => '10.2', 'tri' => 'distance']);
     }
 
-    public function test_accueil_garde_son_decor_d_origine(): void
+    /**
+     * L'accueil montre la même carte que la page Ateliers, mais sans lire la base au rendu
+     * (BlocksRemoteMongo ferait échouer la requête) : les marqueurs arrivent ensuite par carte.json.
+     */
+    public function test_accueil_affiche_la_carte_des_ateliers_sans_lire_la_base(): void
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('class="map-preview"', false)
-            ->assertSee('Solidarité Mode')
-            ->assertDontSee('leaflet', false)
-            ->assertDontSee('ateliers-map.js', false);
+            ->assertSee('data-atelier-map', false)
+            ->assertSee('data-endpoint="'.route('front.ateliers.map').'"', false)
+            ->assertSee('<script type="application/json" data-map-markers>[]</script>', false)
+            ->assertSee('ateliers-map.js', false)
+            ->assertDontSee('class="map-preview"', false);
     }
 }

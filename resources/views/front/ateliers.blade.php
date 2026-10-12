@@ -1,39 +1,55 @@
-@extends('layouts.front')
+@extends('layouts.trame')
 
 @section('title', 'Ateliers de réparation')
 
 @push('styles')
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="{{ asset('css/ateliers.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ateliers-trame.css') }}">
 @endpush
 
+@section('bandeau')
+    <nav class="tr-ariane" aria-label="Fil d'Ariane">
+        <ol>
+            <li><a href="{{ route('front.home') }}">Accueil</a></li>
+            <li><span aria-current="page">Ateliers</span></li>
+        </ol>
+    </nav>
+    <div class="tr-bandeau__grille">
+        <div class="tr-bandeau__principal">
+            <h1 id="ateliers-titre">Ateliers près de chez vous</h1>
+            <p class="tr-bandeau__intro">Réparer, retoucher, transformer : des ateliers partenaires pour prolonger la vie de vos vêtements.</p>
+        </div>
+        <div class="tr-bandeau__cote">
+            <a href="{{ route('front.ateliers.diagnostic') }}" class="tr-pilule est-claire">
+                <i data-lucide="camera" aria-hidden="true"></i> Diagnostiquer mon vêtement par photo
+            </a>
+        </div>
+    </div>
+@endsection
+
 @section('content')
+{{-- Les zones data-swap restent dans [data-ateliers-page] : ateliers-map.js les remplace à chaque recherche. --}}
 <main class="ateliers-page" data-ateliers-page>
-    <section class="ateliers-hero" aria-labelledby="ateliers-titre">
+    <section class="ateliers-hero" aria-label="Rechercher un atelier">
         <div class="container">
-            <div class="ateliers-hero__intro">
-                <p class="kicker">Le réseau local</p>
-                <h1 id="ateliers-titre">Ateliers près de <em>chez vous</em></h1>
-                <p class="ateliers-hero__subtitle" data-swap="total" aria-live="polite">
-                    @if ($total === 0)
-                        Aucun atelier ne correspond à votre recherche pour le moment.
-                    @else
-                        <strong>{{ $total }}</strong> {{ $total > 1 ? 'ateliers partenaires' : 'atelier partenaire' }} pour réparer, retoucher et transformer vos vêtements.
-                    @endif
-                </p>
-                <a href="{{ route('front.ateliers.diagnostic') }}" class="btn btn-secondary ateliers-hero__diagnostic">
-                    <i data-lucide="camera" aria-hidden="true"></i> Diagnostiquer mon vêtement par photo
-                </a>
-                @if ($vetementPourRdv ?? null)
-                    <div class="ai-banner" style="margin-top:16px">
-                        <i data-lucide="shirt"></i>
-                        <div>
-                            <strong>Réparation de « {{ $vetementPourRdv->displayName() }} »</strong>
-                            <p>Choisissez un atelier : le formulaire de rendez-vous sera déjà rempli avec ce vêtement et l'atelier.</p>
-                        </div>
-                    </div>
+            <p class="ateliers-hero__subtitle" data-swap="total" aria-live="polite">
+                @if ($total === 0)
+                    Aucun atelier ne correspond à votre recherche pour le moment.
+                @else
+                    <strong>{{ $total }}</strong> {{ $total > 1 ? 'ateliers partenaires' : 'atelier partenaire' }} pour réparer, retoucher et transformer vos vêtements.
                 @endif
-            </div>
+            </p>
+
+            @if ($vetementPourRdv ?? null)
+                <div class="ai-banner">
+                    <i data-lucide="shirt"></i>
+                    <div>
+                        <strong>Réparation de « {{ $vetementPourRdv->displayName() }} »</strong>
+                        <p>Choisissez un atelier : le formulaire de rendez-vous sera déjà rempli avec ce vêtement et l'atelier.</p>
+                    </div>
+                </div>
+            @endif
 
             <form class="ateliers-search" method="get" action="{{ route('front.ateliers') }}" role="search" aria-label="Rechercher un atelier" data-filters-form>
                 @if (! empty($listQuery['vetement_id']))
@@ -157,7 +173,7 @@
         </div>
 
         <div class="ateliers-layout" data-view="list" data-layout>
-            <section id="ateliers-liste" class="ateliers-results" aria-label="Liste des ateliers" data-swap="results">
+            <section id="ateliers-liste" class="ateliers-results tr-fil" aria-label="Liste des ateliers" data-swap="results">
                 @forelse ($ateliers as $atelier)
                     @include('front.partials.atelier-card', ['atelier' => $atelier, 'listQuery' => $listQuery])
                 @empty
@@ -174,7 +190,7 @@
                 {{ $ateliers->links('vendor.pagination.textilecycle') }}
             </section>
 
-            <aside id="ateliers-carte" class="ateliers-map-panel" aria-label="Carte des ateliers">
+            <aside id="ateliers-carte" class="ateliers-map-panel tr-fil" aria-label="Carte des ateliers">
                 <x-atelier-map
                     :markers="$markers"
                     mode="list"

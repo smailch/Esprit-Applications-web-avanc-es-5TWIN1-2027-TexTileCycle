@@ -9,7 +9,7 @@
 @endphp
 
 <section class="diag-resultat" aria-labelledby="diag-resultat-titre" data-resultat>
-    <aside class="diag-resultat__constat">
+    <aside class="diag-resultat__constat tr-fil">
         <figure class="diag-photo" data-resultat-photo hidden>
             <img alt="Votre photo" data-resultat-image>
         </figure>
@@ -53,7 +53,7 @@
         </a>
     </aside>
 
-    <div class="diag-resultat__reparations">
+    <div class="diag-resultat__reparations tr-fil">
         @if ($resultat['propositions'] === [])
             <p class="diag-vide">Aucune réparation du catalogue ne correspond à cette photo. <a href="{{ route('front.ateliers') }}">Parcourir les ateliers</a></p>
         @else

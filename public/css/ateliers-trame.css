@@ -1,0 +1,528 @@
+/* =========================================================================
+   Module Ateliers en style « trame » (layouts.trame) : liste, fiche et diagnostic par photo.
+   Affine ateliers.css (chargé avant) pour le contenu clair minimaliste : pas de cartes ni d'ombres,
+   des lignes séparées par des fils, des pilules, et les grandes colonnes posées sur la trame.
+   ========================================================================= */
+
+/* ================================================================ commun */
+
+/* Libellé long (« Diagnostiquer mon vêtement par photo ») : la pilule peut passer à la ligne. */
+.tr-bandeau__cote .tr-pilule {
+  height: auto;
+  min-height: 40px;
+  padding-block: 9px;
+  line-height: 1.3;
+  white-space: normal;
+  text-align: left;
+}
+
+.tr-page .atelier-avatar { border-radius: 50%; }
+.tr-page .atelier-avatar--lg { box-shadow: none; }
+
+.tr-page .ai-banner {
+  border: 0;
+  border-left: 2px solid var(--green);
+  border-radius: 0;
+  background: #fff;
+}
+
+/* Les ancres et le défilement par script s'arrêtent sous la barre de navigation fixe. */
+.tr-page .ateliers-layout,
+.tr-page .diag { scroll-margin-top: calc(var(--tr-nav-h) + 16px); }
+
+/* Badge « Ouvert maintenant / Fermé » posé sur le bandeau sombre. */
+.tr-bandeau .open-badge {
+  background: rgb(255 255 255 / .08);
+  color: var(--tr-doux);
+}
+
+.tr-bandeau .open-badge__dot { background: rgb(255 255 255 / .35); }
+
+.tr-bandeau .open-badge.is-open {
+  background: rgb(143 209 154 / .14);
+  color: var(--tr-vert);
+}
+
+.tr-bandeau .open-badge.is-open .open-badge__dot {
+  background: var(--tr-vert);
+  box-shadow: none;
+}
+
+/* Carte Leaflet : cadre droit et fil fin. */
+.tr-page .atelier-map {
+  border-color: var(--tr-filet-clair);
+  border-radius: 0;
+}
+
+/* ================================================================ liste : recherche */
+
+.tr-page .ateliers-hero {
+  padding: clamp(24px, 3vw, 40px) 0 0;
+  border: 0;
+  background: none;
+}
+
+.tr-page .ateliers-hero__subtitle {
+  max-width: none;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.tr-page .ateliers-hero__subtitle strong { color: var(--ink); }
+
+.tr-page .ai-banner { margin: 16px 0 0; }
+
+.tr-page .ateliers-search {
+  margin-top: clamp(16px, 2vw, 24px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.tr-page .ateliers-search__main {
+  align-items: center;
+  gap: 16px;
+}
+
+/* Le champ de recherche se réduit à un trait : le texte saisi devient le titre de la recherche. */
+.tr-page .ateliers-search__field {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  border-radius: 0;
+  background: none;
+}
+
+.tr-page .ateliers-search__field:focus-within {
+  border-bottom-color: var(--green);
+  background: none;
+  box-shadow: 0 1px 0 var(--green);
+}
+
+.tr-page .ateliers-page .ateliers-search__field input {
+  padding: 12px 0;
+  font-size: clamp(18px, 1.6vw, 22px);
+}
+
+.tr-page .ateliers-search__main .btn { padding: 12px 24px; }
+
+.tr-page .ateliers-filters {
+  margin-top: 18px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.tr-page .ateliers-page .filter-field__label {
+  padding-left: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.tr-page .ateliers-page .filter-field select {
+  border-color: var(--tr-filet-clair);
+  background-color: transparent;
+}
+
+.tr-page .ateliers-page .filter-field select:hover { border-color: var(--ink); }
+
+.tr-page .filter-chip { background: transparent; }
+
+.tr-page .ateliers-search__errors,
+.tr-page .ateliers-filters__status.is-error {
+  border: 0;
+  border-left: 2px solid currentColor;
+  border-radius: 0;
+}
+
+/* ================================================================ liste : disposition */
+
+.tr-page .ateliers-body { padding: clamp(28px, 4vw, 48px) 0 0; }
+
+/* Liste et carte à 50 / 50 : la carte commence sur une ligne de la trame. */
+.tr-page .ateliers-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+}
+
+.tr-page .ateliers-results {
+  gap: 0;
+  padding-top: 0;
+  padding-right: clamp(16px, 2.4vw, 40px);
+}
+
+.tr-page .ateliers-map-panel {
+  top: calc(var(--tr-nav-h) + 16px);
+  padding-top: clamp(18px, 2.4vw, 28px);
+}
+
+/* ================================================================ liste : ateliers */
+
+.tr-page .atelier-card {
+  padding: 22px 0;
+  border: 0;
+  border-bottom: 1px solid var(--tr-filet-clair);
+  border-radius: 0;
+  background: none;
+}
+
+.tr-page .atelier-card:hover,
+.tr-page .atelier-card:focus-within,
+.tr-page .atelier-card.is-active {
+  border-color: var(--tr-filet-clair);
+  box-shadow: none;
+  transform: none;
+}
+
+.tr-page .atelier-card__title {
+  font-size: 18px;
+  letter-spacing: -.01em;
+}
+
+/* Atelier choisi sur la carte : un point de couture devant son nom. */
+.tr-page .atelier-card.is-active .atelier-card__title a { color: var(--green); }
+
+.tr-page .atelier-card.is-active .atelier-card__title a::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  vertical-align: middle;
+}
+
+.tr-page .atelier-card__services li {
+  border-color: var(--tr-filet-clair);
+  background: transparent;
+}
+
+.tr-page .atelier-card__foot {
+  margin-top: 14px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.tr-page .atelier-card .icon-btn {
+  border-color: var(--tr-filet-clair);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.tr-page .ateliers-empty {
+  padding: 40px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+}
+
+.tr-page .ateliers-empty__icon { margin: 0; }
+.tr-page .ateliers-empty p { margin-left: 0; }
+
+.tr-page .tc-pagination { margin-top: 24px; }
+
+.tr-page .tc-pagination__page,
+.tr-page .tc-pagination__link {
+  border-color: var(--tr-filet-clair);
+  border-radius: 999px;
+  background: transparent;
+}
+
+.tr-page .tc-pagination__page.is-current {
+  border-color: var(--tr-fond);
+  background: var(--tr-fond);
+  box-shadow: none;
+}
+
+/* Bascule Liste / Carte (mobile). */
+.tr-page .view-switch:not([hidden]) {
+  border-color: var(--tr-filet-clair);
+  background: transparent;
+}
+
+.tr-page .view-switch__btn[aria-pressed="true"] {
+  background: var(--tr-fond);
+  color: #fff;
+  box-shadow: none;
+}
+
+/* ================================================================ fiche : bandeau */
+
+/* Bandeau compact : petit avatar à gauche, statut, nom, puis infos et spécialité sur une ligne. */
+.atelier-bandeau {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.6vw, 20px);
+}
+
+.tr-bandeau .atelier-avatar--lg {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  font-size: 17px;
+}
+
+.atelier-bandeau__texte { min-width: 0; }
+
+.atelier-bandeau__statut {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tr-doux);
+}
+
+.atelier-bandeau h1 { margin-bottom: 8px; }
+
+.atelier-bandeau__infos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+}
+
+.tr-bandeau .atelier-hero__meta li { color: var(--tr-doux); }
+.tr-bandeau .atelier-hero__meta .rating { color: #f2c94c; }
+.tr-bandeau .atelier-hero__reviews { color: var(--tr-doux); }
+
+/* La spécialité devient une info de la ligne (plus de pastille). */
+.tr-bandeau .atelier-hero__specialite {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tr-doux);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Actions côte à côte plutôt qu'empilées. */
+.tr-bandeau .atelier-hero__actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Le bouton « Signaler » (composant du module Signalements) fixe sa couleur en style en ligne :
+   !important est le seul moyen de la rendre lisible sur le fond sombre sans modifier le composant. */
+.tr-bandeau .signaler > summary { color: #f0a46b !important; }
+
+/* ================================================================ fiche : contenu */
+
+.tr-page .atelier-show.page-content { padding-top: clamp(28px, 4vw, 48px); }
+
+/* Contenu sur 3 colonnes de la trame, informations pratiques sur la 4e. */
+.tr-page .atelier-show__layout {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 0;
+}
+
+.tr-page .atelier-show__content { padding-right: clamp(16px, 2.4vw, 40px); }
+
+.tr-page .atelier-section + .atelier-section { margin-top: clamp(40px, 5vw, 64px); }
+
+.tr-page .atelier-section h2 {
+  font-size: 22px;
+  letter-spacing: -.01em;
+}
+
+.tr-page .atelier-section__empty {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.tr-page .service-list { gap: 0; }
+
+/* Sans l'icône (décorative), la ligne garde deux colonnes : description, puis prix et réservation. */
+.tr-page .service-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 1px solid var(--tr-filet-clair);
+  border-radius: 0;
+  background: none;
+}
+
+.tr-page .service-row:hover,
+.tr-page .service-row:focus-within {
+  border-color: var(--tr-filet-clair);
+  box-shadow: none;
+}
+
+.tr-page .service-row__icon { display: none; }
+
+.tr-page .service-row__duration {
+  padding: 0;
+  background: none;
+}
+
+.tr-page .service-row__price { font-size: 18px; }
+
+.tr-page .atelier-show__aside { gap: clamp(32px, 4vw, 48px); }
+
+.tr-page .atelier-info { padding: clamp(18px, 2.4vw, 28px) 0 0; }
+
+.tr-page .atelier-info__list dt {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.tr-page .horaires-table th,
+.tr-page .horaires-table td { padding: 8px 0; }
+
+.tr-page .horaires-table tr.is-today th,
+.tr-page .horaires-table tr.is-today td {
+  background: none;
+  color: var(--green-dark);
+}
+
+.tr-page .horaires-table__today {
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ================================================================ diagnostic */
+
+.tr-page .diag {
+  max-width: none;
+  padding-top: clamp(28px, 4vw, 48px);
+}
+
+/* Étapes et formulaire à 50 / 50, alignés sur la trame. */
+.tr-page .diag-hero {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 0;
+}
+
+.tr-page .diag-intro { padding-right: clamp(16px, 2.4vw, 40px); }
+
+.diag-intro__titre {
+  margin-bottom: 20px;
+  font-size: 22px;
+  letter-spacing: -.01em;
+}
+
+.tr-page .diag-etapes { margin: 0; gap: 22px; }
+.tr-page .diag-etapes::before { border-left: 1px solid var(--tr-filet-clair); }
+.tr-page .diag-etapes li { font-size: 16px; }
+
+.tr-page .diag-etapes__num {
+  border: 1px solid var(--tr-filet-clair);
+  background: var(--tr-papier);
+}
+
+.tr-page .diag-form {
+  padding: clamp(18px, 2.4vw, 28px) 0 0;
+  border: 0;
+  border-top: 1px solid var(--tr-filet-clair);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.tr-page .diag-alerte {
+  border: 0;
+  border-left: 2px solid currentColor;
+  border-radius: 0;
+}
+
+.tr-page .diag-champ textarea { border-color: var(--tr-filet-clair); }
+
+/* Résultat : constat sur 3/8 de la largeur, réparations sur 5/8 (deux lignes de la trame). */
+.tr-page .diag-resultat {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 5fr);
+  gap: 0;
+  margin-top: 0;
+}
+
+.tr-page .diag-resultat__constat {
+  top: calc(var(--tr-nav-h) + 16px);
+  padding-right: clamp(16px, 2.4vw, 40px);
+}
+
+.tr-page .diag-constat {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.tr-page .diag-sous-titre { margin-top: 0; }
+
+.tr-page .diag-reparations {
+  gap: 0;
+  border-top: 1px solid var(--tr-filet-clair);
+}
+
+.tr-page .diag-reparation,
+.tr-page .diag-reparation.est-principale {
+  padding: 22px 0;
+  border: 0;
+  border-bottom: 1px solid var(--tr-filet-clair);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.tr-page .diag-ateliers { gap: 0; }
+
+.tr-page .diag-atelier {
+  padding: 12px 0;
+  border-radius: 0;
+  background: none;
+}
+
+.tr-page .diag-atelier + .diag-atelier { border-top: 1px solid rgb(24 51 42 / .08); }
+
+.tr-page .diag-incertain { border-radius: 0; }
+
+/* ================================================================ responsive */
+
+@media (max-width: 1100px) {
+  .tr-page .atelier-show__layout { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+}
+
+@media (max-width: 860px) {
+  .tr-page .diag-hero,
+  .tr-page .diag-resultat {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 32px;
+  }
+
+  .tr-page .diag-intro,
+  .tr-page .diag-resultat__constat { padding-right: 0; }
+}
+
+@media (max-width: 850px) {
+  .tr-page .ateliers-layout { grid-template-columns: minmax(0, 1fr); }
+  .tr-page .ateliers-results { padding-right: 0; }
+
+  .tr-page .atelier-show__layout {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: clamp(40px, 6vw, 56px);
+  }
+
+  .tr-page .atelier-show__content { padding-right: 0; }
+
+  .tr-bandeau .atelier-avatar--lg {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 560px) {
+  .tr-page .ateliers-search__main { align-items: stretch; }
+
+  .atelier-bandeau__statut { display: none; }
+}

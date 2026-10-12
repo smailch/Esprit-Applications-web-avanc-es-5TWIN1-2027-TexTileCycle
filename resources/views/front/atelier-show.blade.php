@@ -1,10 +1,11 @@
-@extends('layouts.front')
+@extends('layouts.trame')
 
 @section('title', $atelier->nom.' · Atelier')
 
 @push('styles')
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="{{ asset('css/ateliers.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ateliers-trame.css') }}">
 @endpush
 
 @php
@@ -21,9 +22,9 @@
     $aCoordonnees = is_numeric($atelier->latitude) && is_numeric($atelier->longitude);
 @endphp
 
-@section('content')
-<main class="container page-content atelier-show">
-    <nav class="atelier-breadcrumb" aria-label="Fil d'Ariane">
+{{-- « Ateliers » du fil d'Ariane ramène à la liste avec les filtres de la recherche ($retourUrl). --}}
+@section('bandeau')
+    <nav class="tr-ariane" aria-label="Fil d'Ariane">
         <ol>
             <li><a href="{{ route('front.home') }}">Accueil</a></li>
             <li><a href="{{ $retourUrl }}">Ateliers</a></li>
@@ -31,47 +32,38 @@
         </ol>
     </nav>
 
-    <a href="{{ $retourUrl }}" class="link-button atelier-show__back">
-        <i data-lucide="arrow-left" aria-hidden="true"></i> Retour à la liste des ateliers
-    </a>
+    <div class="tr-bandeau__grille">
+        <div class="tr-bandeau__principal atelier-bandeau">
+            <div class="atelier-avatar atelier-avatar--lg atelier-avatar--{{ $atelier->avatarTone() }}" aria-hidden="true">{{ $atelier->initiales() }}</div>
 
-    @if ($vetementPourRdv ?? null)
-        <div class="ai-banner">
-            <i data-lucide="shirt"></i>
-            <div>
-                <strong>Réparation de « {{ $vetementPourRdv->displayName() }} »</strong>
-                <p>Ce vêtement sera déjà sélectionné dans le formulaire de rendez-vous avec cet atelier.</p>
+            <div class="atelier-bandeau__texte">
+                <p class="atelier-bandeau__statut">Atelier partenaire</p>
+                <h1>{{ $atelier->nom }}</h1>
+
+                {{-- Infos et spécialité sur une seule ligne : le bandeau reste compact. --}}
+                <div class="atelier-bandeau__infos">
+                    <ul class="atelier-hero__meta">
+                        <li><i data-lucide="map-pin" aria-hidden="true"></i> {{ $atelier->ville }}</li>
+                        <li class="rating">
+                            <i data-lucide="star" aria-hidden="true"></i>
+                            <span><span class="sr-only">Note </span>{{ $atelier->noteFormatee() }}<span class="sr-only"> sur 5</span></span>
+                            <span class="atelier-hero__reviews"><span aria-hidden="true">·</span> {{ (int) $atelier->nb_avis }} avis</span>
+                        </li>
+                        <li>
+                            <span @class(['open-badge', 'is-open' => $ouvert])>
+                                <span class="open-badge__dot" aria-hidden="true"></span>{{ $ouvert ? 'Ouvert maintenant' : 'Fermé' }}
+                            </span>
+                        </li>
+                    </ul>
+
+                    @if ($atelier->specialiteAffichee() !== '')
+                        <p class="atelier-hero__specialite"><i data-lucide="scissors" aria-hidden="true"></i> {{ $atelier->specialiteAffichee() }}</p>
+                    @endif
+                </div>
             </div>
         </div>
-    @endif
 
-    <header class="atelier-hero">
-        <div class="atelier-avatar atelier-avatar--lg atelier-avatar--{{ $atelier->avatarTone() }}" aria-hidden="true">{{ $atelier->initiales() }}</div>
-
-        <div class="atelier-hero__main">
-            <p class="kicker">Atelier partenaire</p>
-            <h1>{{ $atelier->nom }}</h1>
-
-            <ul class="atelier-hero__meta">
-                <li><i data-lucide="map-pin" aria-hidden="true"></i> {{ $atelier->ville }}</li>
-                <li class="rating">
-                    <i data-lucide="star" aria-hidden="true"></i>
-                    <span><span class="sr-only">Note </span>{{ $atelier->noteFormatee() }}<span class="sr-only"> sur 5</span></span>
-                    <span class="atelier-hero__reviews"><span aria-hidden="true">·</span> {{ (int) $atelier->nb_avis }} avis</span>
-                </li>
-                <li>
-                    <span @class(['open-badge', 'is-open' => $ouvert])>
-                        <span class="open-badge__dot" aria-hidden="true"></span>{{ $ouvert ? 'Ouvert maintenant' : 'Fermé' }}
-                    </span>
-                </li>
-            </ul>
-
-            @if ($atelier->specialiteAffichee() !== '')
-                <p class="atelier-hero__specialite"><i data-lucide="scissors" aria-hidden="true"></i> {{ $atelier->specialiteAffichee() }}</p>
-            @endif
-        </div>
-
-        <div class="atelier-hero__actions">
+        <div class="tr-bandeau__cote atelier-hero__actions">
             <a href="{{ $rdvUrl }}" class="btn btn-primary" aria-label="Prendre RDV chez {{ $atelier->nom }}">
                 <i data-lucide="calendar-plus" aria-hidden="true"></i> Prendre RDV
             </a>
@@ -82,18 +74,31 @@
             @endif
             <x-signaler cible-type="Atelier" :cible-id="(string) $atelier->getKey()" />
         </div>
-    </header>
+    </div>
+@endsection
+
+@section('content')
+<main class="container page-content atelier-show">
+    @if ($vetementPourRdv ?? null)
+        <div class="ai-banner">
+            <i data-lucide="shirt"></i>
+            <div>
+                <strong>Réparation de « {{ $vetementPourRdv->displayName() }} »</strong>
+                <p>Ce vêtement sera déjà sélectionné dans le formulaire de rendez-vous avec cet atelier.</p>
+            </div>
+        </div>
+    @endif
 
     <div class="atelier-show__layout">
         <div class="atelier-show__content">
             @if (filled($atelier->description))
-                <section class="atelier-section" aria-labelledby="titre-apropos">
+                <section class="atelier-section tr-fil" aria-labelledby="titre-apropos">
                     <h2 id="titre-apropos">À propos</h2>
                     <p class="atelier-section__text">{{ $atelier->description }}</p>
                 </section>
             @endif
 
-            <section class="atelier-section" aria-labelledby="titre-services">
+            <section class="atelier-section tr-fil" aria-labelledby="titre-services">
                 <div class="atelier-section__head">
                     <h2 id="titre-services">Services et tarifs</h2>
                     @if ($prixMin !== null)
@@ -136,7 +141,7 @@
         </div>
 
         <aside class="atelier-show__aside" aria-label="Informations pratiques">
-            <section class="panel atelier-info" aria-labelledby="titre-coordonnees">
+            <section class="panel atelier-info tr-fil" aria-labelledby="titre-coordonnees">
                 <h2 id="titre-coordonnees">Coordonnées</h2>
                 <dl class="atelier-info__list">
                     <div>
@@ -152,7 +157,7 @@
                 </dl>
             </section>
 
-            <section class="panel atelier-info" aria-labelledby="titre-horaires">
+            <section class="panel atelier-info tr-fil" aria-labelledby="titre-horaires">
                 <h2 id="titre-horaires">Horaires</h2>
                 <table class="horaires-table">
                     <caption class="sr-only">Horaires d'ouverture de la semaine, heure de Tunis</caption>
@@ -184,7 +189,7 @@
             </section>
 
             @if ($aCoordonnees)
-                <section class="panel atelier-info" aria-labelledby="titre-localisation">
+                <section class="panel atelier-info tr-fil" aria-labelledby="titre-localisation">
                     <h2 id="titre-localisation">Localisation</h2>
                     <x-atelier-map
                         :markers="$markers"

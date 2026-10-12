@@ -1,10 +1,11 @@
-@extends('layouts.front')
+@extends('layouts.trame')
 
 @section('title', 'Diagnostic par photo · Ateliers')
 
 @push('styles')
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="{{ asset('css/ateliers.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ateliers-trame.css') }}">
 @endpush
 
 @php
@@ -12,22 +13,28 @@
     $erreurTexte = $errors->first('texte');
 @endphp
 
-@section('content')
-<main class="container page-content diag">
-    <nav class="atelier-breadcrumb" aria-label="Fil d'Ariane">
+@section('bandeau')
+    <nav class="tr-ariane" aria-label="Fil d'Ariane">
         <ol>
             <li><a href="{{ route('front.home') }}">Accueil</a></li>
             <li><a href="{{ route('front.ateliers') }}">Ateliers</a></li>
             <li><span aria-current="page">Diagnostic par photo</span></li>
         </ol>
     </nav>
+    <div class="tr-bandeau__grille">
+        <div class="tr-bandeau__principal">
+            <h1>Diagnostiquer mon vêtement</h1>
+            <p class="tr-bandeau__intro">Une photo de la partie abîmée suffit : on vous propose la réparation et les ateliers qui la font près de chez vous.</p>
+        </div>
+    </div>
+@endsection
 
+@section('content')
+<main class="container page-content diag">
     {{-- Écran de saisie. Masqué quand le résultat est rendu par le serveur (envoi sans JavaScript). --}}
     <div class="diag-hero" data-ecran-saisie @if ($resultat) hidden @endif>
-        <div class="diag-intro">
-            <h1>Diagnostiquer mon vêtement</h1>
-            <p class="diag-intro__texte">Une photo de la partie abîmée suffit : on vous propose la réparation et les ateliers qui la font près de chez vous.</p>
-
+        <div class="diag-intro tr-fil">
+            <h2 class="diag-intro__titre">Comment ça marche</h2>
             <ol class="diag-etapes">
                 <li><span class="diag-etapes__num" aria-hidden="true">1</span> Photographiez la partie abîmée, de près et bien éclairée.</li>
                 <li><span class="diag-etapes__num" aria-hidden="true">2</span> L'IA reconnaît le défaut et cherche la réparation.</li>
@@ -37,7 +44,7 @@
 
         {{-- Contrôles de saisie en PHP (DiagnosticPhotoRequest) : aucun attribut de validation HTML. --}}
         <form method="post" action="{{ route('front.ateliers.diagnostic.analyser') }}" enctype="multipart/form-data"
-              class="diag-form diagnostic-form" data-diagnostic-form>
+              class="diag-form diagnostic-form tr-fil" data-diagnostic-form>
             @csrf
 
             <div data-alerte-zone></div>

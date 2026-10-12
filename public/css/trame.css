@@ -1,0 +1,719 @@
+/* =========================================================================
+   « Trame » : style commun dérivé de la page d'accueil (préfixe tr-).
+   - Fond sombre (barre de navigation, bandeau) et fond clair (contenu des pages).
+   - Trame : fines lignes verticales sur 8 colonnes (4 sur mobile) ; le contenu s'aligne sur une sur deux.
+   - Fil : un trait horizontal avec un point de couture là où il croise une colonne.
+   Utilisé par layouts/trame.blade.php et par l'accueil. S'appuie sur les variables de textilecycle.css.
+   ========================================================================= */
+
+:root {
+  --tr-fond: #07110c;
+  --tr-fond-2: #10251b;
+  --tr-texte: #f3f7f4;
+  --tr-doux: #b8c7be;
+  --tr-vert: #8fd19a;
+  --tr-papier: var(--surface);
+  --tr-filet-clair: rgb(24 51 42 / .16);
+  --tr-trame-clair: rgb(24 51 42 / .05);
+  --tr-marge: clamp(16px, 3vw, 44px);
+  --tr-entree: cubic-bezier(.2, .75, .2, 1);
+  --tr-colonnes: 8;
+  /* Hauteur de la barre de navigation ; trame.js la remplace par la hauteur mesurée. */
+  --tr-nav-h: 84px;
+
+  /* Couleurs du contexte : sombre par défaut, redéfinies dans .tr-contenu (clair). */
+  --tr-filet: rgb(255 255 255 / .3);
+  --tr-trame: rgb(255 255 255 / .08);
+  --tr-point: var(--tr-vert);
+}
+
+.tr-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ================================================================ trame */
+
+.tr-grille {
+  position: absolute;
+  inset: 0 var(--tr-marge);
+  z-index: -1;
+  pointer-events: none;
+  border-right: 1px solid var(--tr-trame);
+  background-image: repeating-linear-gradient(90deg,
+    var(--tr-trame) 0 1px,
+    transparent 1px calc(100% / var(--tr-colonnes)));
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, rgb(0 0 0 / .18) 42%, rgb(0 0 0 / .18) 58%, #000 100%);
+          mask-image: linear-gradient(90deg, #000 0%, rgb(0 0 0 / .18) 42%, rgb(0 0 0 / .18) 58%, #000 100%);
+}
+
+/* ================================================================ barre de navigation */
+
+/* Colonnes : logo sur la 1re colonne de la trame (25 %), liens à partir de la 2e, compte à droite. */
+.tr-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 25% minmax(0, 1fr) auto;
+  grid-template-areas: "logo liens compte";
+  align-items: center;
+  /* Barre compacte : environ 54 px de haut sur ordinateur (pilules de 34 px). */
+  padding:
+    calc(clamp(6px, 1vw, 10px) + env(safe-area-inset-top))
+    calc(var(--tr-marge) + env(safe-area-inset-right))
+    clamp(6px, 1vw, 10px)
+    calc(var(--tr-marge) + env(safe-area-inset-left));
+  color: var(--tr-texte);
+  border-bottom: 1px solid transparent;
+  transition: background-color .25s ease, border-color .25s ease;
+}
+
+/* Dès que la page a défilé, la barre prend un fond sombre pour rester lisible sur le contenu. */
+.tr-nav.est-defile {
+  border-bottom-color: rgb(255 255 255 / .08);
+  background: rgb(7 17 12 / .86);
+  -webkit-backdrop-filter: blur(14px);
+          backdrop-filter: blur(14px);
+}
+
+.tr-logo { grid-area: logo; }
+
+.tr-logo .logo {
+  min-height: 32px;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.tr-logo .logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.tr-logo .logo-mark svg { width: 15px; height: 15px; }
+
+/* Toujours sur une ligne : si les liens ne tiennent pas (mobile, compte connecté), la bande défile
+   au doigt et un fondu à droite montre qu'il y en a d'autres. Le padding / margin de 4 px laisse
+   la place au contour de focus, que overflow couperait sinon. */
+.tr-liens {
+  grid-area: liens;
+  display: flex;
+  align-items: center;
+  column-gap: clamp(14px, 2vw, 28px);
+  min-width: 0;
+  margin: -4px;
+  padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+          mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}
+
+.tr-liens::-webkit-scrollbar { display: none; }
+
+/* Spécificité (0,2,1) : passe devant « nav a » et « nav a.active » de textilecycle.css. */
+.tr-liens a,
+.tr-liens a.active {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 7px;
+  min-height: 32px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tr-doux);
+  white-space: nowrap;
+  transition: color .18s ease;
+}
+
+.tr-liens a:hover,
+.tr-liens a.active { color: var(--tr-texte); }
+
+/* Survol : un fil se dessine sous le lien, de gauche à droite (retour discret, souris seulement).
+   transform seul (pas de width) : l'animation reste sur la carte graphique. */
+.tr-liens a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 200ms var(--tr-entree);
+}
+
+/* Lien actif : le fil commence après le point de couture (6 px + 7 px d'écart). */
+.tr-liens a.active::after { left: 13px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .tr-liens a:hover::after { transform: scaleX(1); }
+}
+
+.tr-liens a:focus-visible::after { transform: scaleX(1); }
+
+/* Page en cours : un point de couture devant le mot. */
+.tr-liens a.active::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tr-vert);
+}
+
+.tr-compte {
+  grid-area: compte;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-left: 16px;
+}
+
+.tr-utilisateur {
+  max-width: 16ch;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--tr-doux);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tr-lien-compte {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tr-texte);
+}
+
+.tr-lien-compte:hover { color: var(--tr-vert); }
+
+.tr-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+/* ================================================================ pilules (sur fond sombre) */
+
+.tr-langue,
+.tr-pilule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgb(255 255 255 / .28);
+  border-radius: 999px;
+  background: rgb(7 17 12 / .25);
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--tr-texte);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color .18s ease,
+    border-color .18s ease,
+    color .18s ease,
+    transform 160ms var(--tr-entree);
+}
+
+/* Appui : la pilule s'enfonce légèrement (retour immédiat, aussi au doigt). */
+.tr-langue:active,
+.tr-pilule:active { transform: scale(.97); }
+
+.tr-langue svg,
+.tr-pilule svg { width: 15px; height: 15px; }
+
+/* Dans la barre de navigation : pilules plus compactes. */
+.tr-nav .tr-langue,
+.tr-nav .tr-pilule {
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  font-size: 12.5px;
+}
+
+.tr-nav .tr-langue svg { width: 14px; height: 14px; }
+
+.tr-langue:hover,
+.tr-pilule:hover { border-color: rgb(255 255 255 / .6); }
+
+.tr-pilule.est-claire {
+  border-color: transparent;
+  background: var(--tr-texte);
+  color: var(--ink);
+}
+
+.tr-pilule.est-claire:hover { background: var(--green-soft); }
+
+/* ================================================================ fils */
+
+/* Fil simple au-dessus d'un bloc, avec son point de couture à gauche. */
+.tr-fil {
+  position: relative;
+  padding-top: clamp(18px, 2.4vw, 28px);
+  border-top: 1px solid var(--tr-filet);
+}
+
+.tr-fil::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tr-point);
+}
+
+/* Fil sur 4 colonnes (une ligne de trame sur deux) ; un point par colonne de contenu. */
+.tr-rang {
+  --tr-rang-haut: clamp(28px, 3.5vw, 44px);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: var(--tr-rang-haut) 0 0;
+  list-style: none;
+}
+
+.tr-rang::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--tr-filet);
+  transform-origin: left center;
+  transition: transform 1.2s cubic-bezier(.65, 0, .35, 1);
+}
+
+.tr-rang > * {
+  position: relative;
+  min-width: 0;
+  padding-right: clamp(16px, 2.4vw, 40px);
+}
+
+.tr-rang > *::before {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--tr-rang-haut) - 3px);
+  left: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tr-point);
+  transition: transform .45s var(--tr-entree), opacity .45s ease;
+}
+
+.tr-rang > .s2 { grid-column: span 2; }
+.tr-rang > .s4 { grid-column: 1 / -1; }
+
+/* Lien souligné d'un fil. */
+.tr-lien {
+  display: inline-block;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--tr-filet);
+  text-underline-offset: .32em;
+  transition: color .18s ease, text-decoration-color .18s ease;
+}
+
+.tr-lien:hover {
+  color: var(--tr-point);
+  text-decoration-color: currentColor;
+}
+
+/* ================================================================ gabarit des pages : bandeau sombre */
+
+/* Bandeau compact : fil d'Ariane, titre sur une ligne et intro courte (environ 190 px de haut avec
+   la barre de navigation, sur ordinateur) ; le contenu de la page commence tout de suite après. */
+.tr-bandeau {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding:
+    calc(var(--tr-nav-h) + clamp(8px, 1.2vh, 10px))
+    calc(var(--tr-marge) + env(safe-area-inset-right))
+    clamp(16px, 2vw, 22px)
+    calc(var(--tr-marge) + env(safe-area-inset-left));
+  color: var(--tr-texte);
+  background: radial-gradient(120% 160% at 50% 0%, var(--tr-fond-2) 0%, var(--tr-fond) 70%);
+  container-type: inline-size;
+}
+
+/* Principal (titre et intro) sur 3 colonnes de la trame, côté (action principale) sur la 4e. */
+.tr-bandeau__grille {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+}
+
+.tr-bandeau__principal {
+  grid-column: 1 / 4;
+  min-width: 0;
+  padding-right: clamp(16px, 2.4vw, 40px);
+}
+
+.tr-bandeau__cote {
+  grid-column: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tr-bandeau h1 {
+  font-size: clamp(24px, 3cqi, 46px);
+  font-weight: 800;
+  line-height: .95;
+  letter-spacing: -.045em;
+  text-transform: uppercase;
+  color: #fff;
+  overflow-wrap: break-word;
+  /* Lignes équilibrées : évite un mot seul sur la dernière ligne (« … CHEZ / VOUS »). */
+  text-wrap: balance;
+}
+
+/* Intro sous le titre, sur une ligne quand la largeur le permet. */
+.tr-bandeau__intro {
+  max-width: 90ch;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tr-doux);
+}
+
+/* Boutons existants (.btn) dans le bandeau : un peu plus compacts. */
+.tr-bandeau .btn { padding: 9px 16px; }
+
+/* Fil d'Ariane. */
+.tr-ariane { margin-bottom: 8px; }
+
+/* align-items: center : sur écran tactile, les liens font 44 px de haut et le dernier élément non. */
+.tr-ariane ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--tr-doux);
+}
+
+.tr-ariane li + li::before {
+  content: "/";
+  margin-right: 6px;
+  color: rgb(255 255 255 / .3);
+}
+
+.tr-ariane a:hover { color: var(--tr-texte); }
+.tr-ariane [aria-current="page"] { color: var(--tr-texte); font-weight: 600; }
+
+/* Boutons existants (.btn) posés sur le bandeau : pilules claires. */
+.tr-page .btn { border-radius: 999px; }
+
+.tr-bandeau .btn-primary {
+  border-color: transparent;
+  background: var(--tr-texte);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.tr-bandeau .btn-primary:hover { background: var(--green-soft); }
+
+.tr-bandeau .btn-secondary {
+  border-color: rgb(255 255 255 / .28);
+  background: transparent;
+  color: var(--tr-texte);
+}
+
+.tr-bandeau .btn-secondary:hover {
+  border-color: rgb(255 255 255 / .6);
+  background: transparent;
+}
+
+.tr-bandeau .link-button { color: var(--tr-vert); }
+.tr-bandeau .link-button:hover { color: var(--tr-texte); }
+
+/* ================================================================ gabarit des pages : contenu clair */
+
+.tr-contenu {
+  --tr-filet: var(--tr-filet-clair);
+  --tr-trame: var(--tr-trame-clair);
+  --tr-point: var(--green);
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  padding-bottom: clamp(56px, 8vw, 112px);
+  color: var(--ink);
+  background: var(--tr-papier);
+}
+
+/* Le contenu s'aligne sur les marges de la trame plutôt que sur la colonne centrée de 1120 px. */
+.tr-contenu .container {
+  width: auto;
+  margin-inline:
+    calc(var(--tr-marge) + env(safe-area-inset-left))
+    calc(var(--tr-marge) + env(safe-area-inset-right));
+}
+
+.tr-contenu .btn-primary {
+  border-color: transparent;
+  background: var(--tr-fond);
+  color: #fff;
+  box-shadow: none;
+}
+
+.tr-contenu .btn-primary:hover { background: var(--green-dark); }
+
+.tr-contenu .btn-secondary {
+  border-color: var(--tr-filet-clair);
+  background: transparent;
+  color: var(--ink);
+}
+
+.tr-contenu .btn-secondary:hover {
+  border-color: var(--ink);
+  background: transparent;
+}
+
+.tr-contenu .panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Messages de session (succès, info, erreur) : un trait de couleur à gauche. */
+.tr-messages {
+  display: grid;
+  gap: 8px;
+  padding-top: clamp(20px, 3vw, 32px);
+  margin-inline:
+    calc(var(--tr-marge) + env(safe-area-inset-left))
+    calc(var(--tr-marge) + env(safe-area-inset-right));
+}
+
+.tr-message {
+  padding: 10px 14px;
+  border-left: 2px solid var(--green);
+  background: #fff;
+  font-size: 14px;
+}
+
+.tr-message.est-info { border-left-color: var(--blue); }
+
+.tr-message.est-erreur {
+  border-left-color: #c0392b;
+  color: #8e2f25;
+}
+
+/* ================================================================ pied de page */
+
+/* .acc + .footer : l'accueil garde son layout (layouts.front) ; même rendu que .tr-pied. */
+.tr-pied,
+.acc + .footer {
+  border-top: 1px solid rgb(255 255 255 / .08);
+  background: var(--tr-fond);
+}
+
+.tr-pied .container,
+.acc + .footer .container {
+  width: auto;
+  margin-inline:
+    calc(var(--tr-marge) + env(safe-area-inset-left))
+    calc(var(--tr-marge) + env(safe-area-inset-right));
+}
+
+/* Pas d'espacement entre colonnes (sinon elles quittent la trame) : la marge passe à l'intérieur. */
+.tr-pied .footer-grid,
+.acc + .footer .footer-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 0;
+}
+
+.tr-pied .footer-grid > *,
+.acc + .footer .footer-grid > * { padding-right: clamp(16px, 2.4vw, 40px); }
+
+/* ================================================================ focus */
+
+/* --tr-point change avec le contexte : vert clair sur le sombre, vert du projet sur le clair. */
+.tr-page a:focus-visible,
+.tr-page button:focus-visible,
+.tr-page summary:focus-visible,
+.tr-nav a:focus-visible,
+.tr-nav button:focus-visible {
+  outline: 2px solid var(--tr-point);
+  outline-offset: 3px;
+}
+
+.tr-langue:focus-visible,
+.tr-pilule:focus-visible,
+.tr-page .btn:focus-visible { border-radius: 999px; }
+
+/* ================================================================ écran tactile : zones de 44 px */
+
+@media (pointer: coarse) {
+  .tr-langue,
+  .tr-pilule,
+  .tr-nav .tr-langue,
+  .tr-nav .tr-pilule { height: 44px; }
+
+  .tr-logo .logo,
+  .tr-liens a,
+  .tr-liens a.active,
+  .tr-lien-compte,
+  .tr-lien,
+  .tr-ariane a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .tr-page .btn { min-height: 44px; }
+}
+
+/* ================================================================ mobile et tablette portrait */
+
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1180px) {
+  :root {
+    --tr-colonnes: 4;
+    --tr-nav-h: 64px;
+  }
+
+  /* Toujours une seule ligne : logo, liens (qui défilent s'ils ne tiennent pas), compte. */
+  .tr-nav {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: clamp(12px, 3vw, 24px);
+  }
+
+  .tr-compte { padding-left: 0; }
+
+  /* Seulement visuels ou secondaires : ils cèdent leur place aux liens. */
+  .tr-utilisateur,
+  .tr-langue { display: none; }
+
+  .tr-bandeau__grille {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 12px;
+  }
+
+  .tr-bandeau__principal,
+  .tr-bandeau__cote {
+    grid-column: auto;
+    padding-right: 0;
+  }
+
+  .tr-bandeau h1 { font-size: clamp(24px, 7cqi, 40px); }
+
+  /* Le fil multicolonne devient vertical (frise) et longe la première ligne de la trame. */
+  .tr-rang {
+    --tr-rang-gauche: clamp(20px, 5vw, 32px);
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 36px;
+    padding: 0 0 0 var(--tr-rang-gauche);
+  }
+
+  .tr-rang::before {
+    right: auto;
+    bottom: 0;
+    width: 1px;
+    height: auto;
+    transform-origin: center top;
+  }
+
+  .tr-rang > * { padding-right: 0; }
+  .tr-rang > .s2,
+  .tr-rang > .s4 { grid-column: auto; }
+
+  .tr-rang > *::before {
+    top: 6px;
+    left: calc(-1 * var(--tr-rang-gauche) - 3px);
+  }
+
+  .tr-pied .footer-grid,
+  .acc + .footer .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Seul le pictogramme du logo reste visible (le nom reste lu par les lecteurs d'écran) ;
+   « Espace professionnel » sert surtout sur ordinateur, où il reste affiché. */
+@media (max-width: 720px) {
+  .tr-nav .logo > span:not(.logo-mark) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .tr-lien-compte { display: none; }
+}
+
+@media (max-width: 560px) {
+  .tr-pilule,
+  .tr-nav .tr-pilule { padding: 0 12px; }
+
+  /* Sur téléphone, le bandeau garde le titre et l'action ; le contenu juste dessous explique la page. */
+  .tr-bandeau__intro { display: none; }
+
+  .tr-pied .footer-grid,
+  .acc + .footer .footer-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Petits téléphones : une seule pilule, « Connexion » ; la page de connexion mène à l'inscription. */
+@media (max-width: 480px) {
+  .tr-compte .tr-pilule.est-claire { display: none; }
+}
+
+/* ================================================================ mouvement */
+
+/* Fils multicolonnes : chacun se dessine une fois quand il arrive à l'écran (classes posées par trame.js). */
+.tr-anime .tr-rang:not(.est-visible)::before { transform: scaleX(0); }
+
+.tr-anime .tr-rang:not(.est-visible) > *::before {
+  opacity: 0;
+  transform: scale(0);
+}
+
+.tr-rang > :nth-child(1)::before { transition-delay: .35s; }
+.tr-rang > :nth-child(2)::before { transition-delay: .55s; }
+.tr-rang > :nth-child(3)::before { transition-delay: .75s; }
+.tr-rang > :nth-child(4)::before { transition-delay: .95s; }
+
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1180px) {
+  .tr-anime .tr-rang:not(.est-visible)::before { transform: scaleY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-nav,
+  .tr-nav *,
+  .tr-rang::before,
+  .tr-rang > *::before,
+  .tr-lien,
+  .tr-pilule,
+  .tr-langue {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Sans mouvement : pas d'enfoncement ; le fil sous le lien apparaît d'un coup au lieu de se dessiner. */
+  .tr-langue:active,
+  .tr-pilule:active { transform: none; }
+}
