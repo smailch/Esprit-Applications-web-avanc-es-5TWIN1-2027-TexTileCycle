@@ -39,10 +39,10 @@
 
     <div class="module-toolbar ab-toolbar">
         <form method="get" action="{{ route('back.ateliers') }}" class="ab-filters" role="search" aria-label="Filtrer les ateliers">
-            <div class="search-box compact">
+            <div @class(['search-box', 'compact', 'has-error' => $errors->has('q')])>
                 <i data-lucide="search" aria-hidden="true"></i>
                 <label for="ab-q" class="sr-only">Rechercher par nom, ville, spécialité ou adresse</label>
-                <input id="ab-q" type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="Nom, ville, spécialité…">
+                <input id="ab-q" type="search" name="q" value="{{ old('q', $filters['q'] ?? '') }}" placeholder="Nom, ville, spécialité…" @error('q') aria-invalid="true" @enderror>
             </div>
             <label for="ab-statut" class="sr-only">Filtrer par statut</label>
             <select id="ab-statut" name="statut" class="ab-select">

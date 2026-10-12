@@ -4,11 +4,14 @@ namespace Tests\Feature\Ateliers;
 
 use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Models\Service;
+use App\Modules\Ateliers\Providers\AteliersModuleServiceProvider;
 use App\Modules\Ateliers\Services\AtelierService;
 use App\Modules\Ateliers\Services\ServiceCatalogueService;
 use App\Modules\Auth\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Routing\ControllerDispatcher;
+use Illuminate\Routing\Contracts\ControllerDispatcher as ControllerDispatcherContract;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
 use Mockery;
@@ -519,5 +522,124 @@ class AteliersEspaceTest extends TestCase
         $this->actingAs($this->user())
             ->delete('/admin/ateliers/mes-services/pas-un-id')
             ->assertNotFound();
+    }
+
+    /* ------------------------------------------------- Contrôles de saisie (PHP) */
+
+    public function test_le_formulaire_de_service_n_a_aucun_controle_de_saisie_html(): void
+    {
+        $this->mockAteliers($this->atelier(Atelier::STATUT_ACTIF));
+        $this->mockCatalogue()->shouldReceive('list')->andReturn(new Collection([$this->service()]));
+
+        $html = $this->actingAs($this->user())
+            ->get('/admin/ateliers/mes-services')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, preg_match('/data-service-form[^>]*>(.*?)<\/form>/s', $html, $formulaire));
+        $this->assertDoesNotMatchRegularExpression('/\s(required|maxlength|minlength|pattern|min|max|step)(=|\s|>)/', $formulaire[1]);
+        $this->assertDoesNotMatchRegularExpression('/type="(number|time|email|url|date)"/', $formulaire[1]);
+    }
+
+    public function test_la_creation_accepte_un_prix_avec_une_virgule(): void
+    {
+        $this->mockAteliers($this->atelier());
+        $this->mockCatalogue()->shouldReceive('create')
+            ->once()
+            ->withArgs(fn (Atelier $a, array $data) => $data['prix_estime'] === '12.5')
+            ->andReturn(new Service(['nom' => 'Ourlet']));
+
+        $this->actingAs($this->user())
+            ->post('/admin/ateliers/mes-services', ['nom' => 'Ourlet', 'prix_estime' => '12,5', 'duree_estimee' => '30', '_modal' => 'create'])
+            ->assertRedirect(route('back.ateliers.services'))
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_la_creation_refuse_un_prix_et_une_duree_qui_ne_sont_pas_des_nombres(): void
+    {
+        $this->mockAteliers($this->atelier());
+        $this->mockCatalogue()->shouldNotReceive('create');
+
+        $this->actingAs($this->user())
+            ->from('/admin/ateliers/mes-services')
+            ->post('/admin/ateliers/mes-services', ['nom' => '', 'prix_estime' => 'gratuit', 'duree_estimee' => '1h', '_modal' => 'create'])
+            ->assertRedirect('/admin/ateliers/mes-services')
+            ->assertSessionHasErrors([
+                'nom' => 'Le nom du service est obligatoire.',
+                'prix_estime' => 'Le prix estimé doit être un nombre.',
+                'duree_estimee' => 'La durée estimée doit être un nombre entier de minutes.',
+            ]);
+    }
+
+    /* ------------------------------------------ Validation en temps réel (Precognition) */
+
+    private function precognition(?string $champs = null): array
+    {
+        return array_filter([
+            'Precognition' => 'true',
+            'Precognition-Validate-Only' => $champs,
+            'Accept' => 'application/json',
+        ]);
+    }
+
+    public function test_la_validation_en_temps_reel_renvoie_l_erreur_du_champ_sans_enregistrer(): void
+    {
+        $this->mockAteliers($this->atelier())->shouldNotReceive('updateOwn');
+
+        $this->actingAs($this->user())
+            ->put('/admin/ateliers/mon-profil', $this->profilPayload(['nom' => str_repeat('a', 121), 'telephone' => 'abc']), $this->precognition('nom'))
+            ->assertStatus(422)
+            ->assertHeader('Precognition', 'true')
+            ->assertJsonValidationErrors(['nom' => 'Le nom ne doit pas dépasser 120 caractères.'])
+            ->assertJsonMissingValidationErrors('telephone');
+    }
+
+    public function test_la_validation_en_temps_reel_d_un_champ_valide_renvoie_204_sans_enregistrer(): void
+    {
+        $this->mockAteliers($this->atelier())->shouldNotReceive('updateOwn');
+
+        $this->actingAs($this->user())
+            ->put('/admin/ateliers/mon-profil', $this->profilPayload(), $this->precognition('nom'))
+            ->assertNoContent();
+    }
+
+    public function test_la_validation_complete_en_temps_reel_ne_cree_pas_le_service(): void
+    {
+        $this->mockAteliers($this->atelier());
+        $this->mockCatalogue()->shouldNotReceive('create');
+
+        $this->actingAs($this->user())
+            ->post('/admin/ateliers/mes-services', ['nom' => 'Ourlet', 'prix_estime' => '12,5', 'duree_estimee' => '30'], $this->precognition())
+            ->assertNoContent();
+
+        $this->actingAs($this->user())
+            ->post('/admin/ateliers/mes-services', ['nom' => '', 'prix_estime' => '-1', 'duree_estimee' => '30'], $this->precognition())
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['nom', 'prix_estime'])
+            ->assertJsonMissingValidationErrors('duree_estimee');
+    }
+
+    public function test_les_validations_en_temps_reel_sont_limitees_mais_pas_l_enregistrement(): void
+    {
+        $this->mockAteliers($this->atelier())
+            ->shouldReceive('updateOwn')
+            ->once()
+            ->andReturn($this->atelier());
+        $this->actingAs($this->user());
+
+        for ($i = 0; $i < AteliersModuleServiceProvider::PRECOGNITIONS_PAR_MINUTE; $i++) {
+            $this->put('/admin/ateliers/mon-profil', $this->profilPayload(), $this->precognition('nom'))->assertNoContent();
+        }
+
+        $this->put('/admin/ateliers/mon-profil', $this->profilPayload(), $this->precognition('nom'))
+            ->assertStatus(429);
+
+        // En production chaque requête démarre une application neuve. Ici l'application de test est réutilisée :
+        // on retire le répartiteur « Precognition » que les requêtes précédentes ont posé dans le conteneur.
+        $this->app->singleton(ControllerDispatcherContract::class, fn ($app) => new ControllerDispatcher($app));
+
+        $this->put('/admin/ateliers/mon-profil', $this->profilPayload())
+            ->assertRedirect(route('back.ateliers.profil'))
+            ->assertSessionHasNoErrors();
     }
 }

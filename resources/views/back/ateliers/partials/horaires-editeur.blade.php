@@ -2,7 +2,7 @@
     <div class="panel-head">
         <div>
             <h2 id="sec-horaires">Horaires</h2>
-            <p>Heure de Tunis. Cochez « Fermé » pour un jour de repos.</p>
+            <p>Heure de Tunis, au format HH:MM (ex. 09:00). Cochez « Fermé » pour un jour de repos.</p>
         </div>
     </div>
     <div class="ab-section__body">

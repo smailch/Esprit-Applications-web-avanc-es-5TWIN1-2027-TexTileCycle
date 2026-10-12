@@ -89,6 +89,7 @@
 .ab-filters .search-box { background: #fff; }
 .ab-filters .search-box input:focus { outline: none; }
 .ab-filters .search-box:focus-within { border-color: #b9d8c0; box-shadow: 0 0 0 3px #2e7d3226; }
+.ab-filters .search-box.has-error { border-color: #e3a49c; background: #fffafa; }
 
 .ab-select,
 .ab-input,

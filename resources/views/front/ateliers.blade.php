@@ -21,6 +21,9 @@
                         <strong>{{ $total }}</strong> {{ $total > 1 ? 'ateliers partenaires' : 'atelier partenaire' }} pour réparer, retoucher et transformer vos vêtements.
                     @endif
                 </p>
+                <a href="{{ route('front.ateliers.diagnostic') }}" class="btn btn-secondary ateliers-hero__diagnostic">
+                    <i data-lucide="camera" aria-hidden="true"></i> Diagnostiquer mon vêtement par photo
+                </a>
                 @if ($vetementPourRdv ?? null)
                     <div class="ai-banner" style="margin-top:16px">
                         <i data-lucide="shirt"></i>
@@ -40,7 +43,7 @@
                     <label for="atelier-q" class="sr-only">Rechercher par nom d'atelier, ville, spécialité ou service</label>
                     <div class="ateliers-search__field">
                         <i data-lucide="search" aria-hidden="true"></i>
-                        <input id="atelier-q" type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="Retouche denim, ourlet, La Marsa…" autocomplete="off">
+                        <input id="atelier-q" type="search" name="q" value="{{ old('q', $filters['q'] ?? '') }}" placeholder="Retouche denim, ourlet, La Marsa…" autocomplete="off">
                     </div>
                     <button type="submit" class="btn btn-primary">Rechercher</button>
                 </div>
@@ -112,6 +115,20 @@
 
                 <p class="ateliers-filters__status" data-locate-status role="status" aria-live="polite"></p>
             </form>
+
+            {{-- Erreurs de SearchAteliersRequest. Zone remplacée à chaque recherche : elle disparaît dès qu'une recherche est valide. --}}
+            <div data-swap="erreurs">
+                @if ($errors->any())
+                    <div class="ateliers-search__errors" role="alert">
+                        <i data-lucide="alert-circle" aria-hidden="true"></i>
+                        <ul>
+                            @foreach ($errors->all() as $message)
+                                <li>{{ $message }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </div>
 
             <div data-swap="chips">
                 @if (count($activeFilters) > 0)

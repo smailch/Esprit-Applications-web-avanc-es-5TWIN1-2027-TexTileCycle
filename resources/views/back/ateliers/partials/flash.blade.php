@@ -20,7 +20,7 @@
 @endif
 
 @if ($errors->any() && empty($masquerErreurs))
-    <div class="ab-alert ab-alert--error" role="alert">
+    <div class="ab-alert ab-alert--error" role="alert" data-validation-summary>
         <i data-lucide="alert-triangle" aria-hidden="true"></i>
         <div>
             <p><strong>{{ $errors->count() > 1 ? 'Certains champs sont à corriger :' : 'Un champ est à corriger :' }}</strong></p>

@@ -3,6 +3,7 @@
 namespace App\Modules\Ateliers\Http\Controllers\Back;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Ateliers\Http\Requests\FiltreAteliersAdminRequest;
 use App\Modules\Ateliers\Http\Requests\StoreAtelierRequest;
 use App\Modules\Ateliers\Http\Requests\UpdateAtelierRequest;
 use App\Modules\Ateliers\Models\Atelier;
@@ -25,7 +26,7 @@ class AtelierController extends Controller
     {
     }
 
-    public function index(Request $request)
+    public function index(FiltreAteliersAdminRequest $request)
     {
         if ($request->user()?->role === User::ROLE_ATELIER) {
             return redirect()->route(self::ROUTE_ESPACE_ATELIER);
@@ -36,7 +37,7 @@ class AtelierController extends Controller
         $this->authorize('viewAny', Atelier::class);
 
         $filters = array_filter([
-            'q' => is_string($request->query('q')) ? mb_substr(trim($request->query('q')), 0, 100) : null,
+            'q' => is_string($request->query('q')) ? trim($request->query('q')) : null,
             'statut' => in_array($request->query('statut'), Atelier::STATUTS, true) ? $request->query('statut') : null,
         ], fn ($v) => $v !== null && $v !== '');
 

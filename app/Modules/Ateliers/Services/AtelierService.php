@@ -172,6 +172,16 @@ class AtelierService
     }
 
     /**
+     * Tous les ateliers actifs avec leurs services (catalogue du diagnostic par photo).
+     *
+     * @return Collection<int, Atelier>
+     */
+    public function actifsAvecServices(): Collection
+    {
+        return $this->actifs([]);
+    }
+
+    /**
      * @return list<string>
      */
     public function villes(): array

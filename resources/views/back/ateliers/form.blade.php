@@ -28,7 +28,7 @@
                     @else
                         <div @class(['ab-field', 'has-error' => $errors->has('user_id')])>
                             <label for="f-user_id" class="ab-label">Compte utilisateur <span class="ab-required" aria-hidden="true">*</span></label>
-                            <select id="f-user_id" name="user_id" class="ab-input" required
+                            <select id="f-user_id" name="user_id" class="ab-input" aria-required="true"
                                     aria-describedby="f-user_id-hint @error('user_id') f-user_id-error @enderror"
                                     @error('user_id') aria-invalid="true" @enderror
                                     @disabled($comptes->isEmpty())>
@@ -74,7 +74,7 @@
                 <div class="ab-section__body">
                     <div @class(['ab-field', 'has-error' => $errors->has('statut')])>
                         <label for="f-statut" class="ab-label">Statut <span class="ab-required" aria-hidden="true">*</span></label>
-                        <select id="f-statut" name="statut" class="ab-input" required aria-describedby="f-statut-hint @error('statut') f-statut-error @enderror" @error('statut') aria-invalid="true" @enderror>
+                        <select id="f-statut" name="statut" class="ab-input" aria-required="true" aria-describedby="f-statut-hint @error('statut') f-statut-error @enderror" @error('statut') aria-invalid="true" @enderror>
                             @foreach ($statuts as $statut)
                                 <option value="{{ $statut }}" @selected($statutCourant === $statut)>{{ \App\Modules\Ateliers\Models\Atelier::libelleStatut($statut) }}</option>
                             @endforeach

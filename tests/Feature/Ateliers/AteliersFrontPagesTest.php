@@ -176,6 +176,33 @@ class AteliersFrontPagesTest extends TestCase
             ->assertSessionHasErrors(['note_min', 'tri']);
     }
 
+    public function test_une_recherche_trop_longue_revient_sur_la_liste_avec_le_message_et_la_saisie(): void
+    {
+        $this->mockService();
+        $recherche = str_repeat('a', 101);
+
+        $this->get('/ateliers?q='.$recherche)
+            ->assertRedirect(route('front.ateliers'))
+            ->assertSessionHasErrors(['q' => 'La recherche ne doit pas dépasser 100 caractères.']);
+
+        $this->followingRedirects()
+            ->get('/ateliers?q='.$recherche)
+            ->assertOk()
+            ->assertSee('class="ateliers-search__errors" role="alert"', false)
+            ->assertSee('La recherche ne doit pas dépasser 100 caractères.')
+            ->assertSee('name="q" value="'.$recherche.'"', false);
+    }
+
+    public function test_une_recherche_valide_n_affiche_aucune_erreur(): void
+    {
+        $this->mockService();
+
+        $this->get('/ateliers?q=denim')
+            ->assertOk()
+            ->assertSee('data-swap="erreurs"', false)
+            ->assertDontSee('ateliers-search__errors', false);
+    }
+
     public function test_carte_json_avec_les_memes_filtres(): void
     {
         $this->mockService();

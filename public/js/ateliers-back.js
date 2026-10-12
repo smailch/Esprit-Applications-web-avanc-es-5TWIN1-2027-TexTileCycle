@@ -102,9 +102,13 @@
 
     let marker = null;
 
+    // Une valeur écrite par script ne déclenche aucun événement : on prévient la validation en temps réel.
+    const notifyPosition = () => form.dispatchEvent(new CustomEvent('ateliers:position'));
+
     const writeInputs = (latlng) => {
       latInput.value = String(round(latlng.lat));
       lngInput.value = String(round(latlng.lng));
+      notifyPosition();
       announce(`Position : ${latInput.value}, ${lngInput.value}`);
     };
 
@@ -142,6 +146,7 @@
     clearBtn?.addEventListener('click', () => {
       latInput.value = '';
       lngInput.value = '';
+      notifyPosition();
       if (marker) {
         marker.remove();
         marker = null;
