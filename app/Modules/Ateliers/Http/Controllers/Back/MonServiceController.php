@@ -97,6 +97,14 @@ class MonServiceController extends Controller
         $service = $this->serviceDe($atelier, $id);
         $this->authorize('delete', $service);
 
+        $nbRdv = $this->catalogue->nbRendezVousEnCours($atelier, $id);
+        if ($nbRdv > 0) {
+            return redirect()
+                ->route('back.ateliers.services')
+                ->with('error', "Le service « {$service->nom} » est réservé dans {$nbRdv} rendez-vous en cours : "
+                    .'terminez-les ou annulez-les avant de le supprimer, ou modifiez-le plutôt.');
+        }
+
         $this->catalogue->delete($atelier, $id);
 
         return redirect()

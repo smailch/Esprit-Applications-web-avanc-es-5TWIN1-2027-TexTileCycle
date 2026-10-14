@@ -6,6 +6,8 @@ use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Models\Service;
 use App\Modules\Auth\Models\User;
 use App\Modules\Auth\Services\UserService;
+use App\Modules\RendezVous\Models\RendezVous;
+use App\Modules\RendezVous\Services\RendezVousService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -30,6 +32,9 @@ class AtelierService
     public const COMPTE_INTROUVABLE = 'introuvable';
 
     public const COMPTE_DEJA_RATTACHE = 'deja_rattache';
+
+    /** Rendez-vous qui engagent encore l'atelier : le client attend une réponse ou sa réparation. */
+    public const STATUTS_RDV_EN_COURS = [RendezVous::STATUT_EN_ATTENTE, RendezVous::STATUT_CONFIRME];
 
     /**
      * Champs modifiables par l'admin comme par l'atelier lui-même.
@@ -370,6 +375,36 @@ class AtelierService
         );
 
         return $atelier;
+    }
+
+    public function nbRendezVousEnCours(string $atelierId): int
+    {
+        return $this->rendezVousEnCours($atelierId)->count();
+    }
+
+    /**
+     * Annule les rendez-vous en cours de l'atelier (avant une suspension). Passe par RendezVousService
+     * pour que chaque pièce soit remise en attente et que son historique soit complété.
+     *
+     * @return int nombre de rendez-vous annulés
+     */
+    public function annulerRendezVousEnCours(string $atelierId): int
+    {
+        $ids = $this->rendezVousEnCours($atelierId)->get(['_id'])->map(fn (RendezVous $rdv) => (string) $rdv->getKey());
+        $rendezVous = app(RendezVousService::class);
+
+        foreach ($ids as $id) {
+            $rendezVous->changerStatutPourAdmin($id, RendezVous::STATUT_ANNULE);
+        }
+
+        return $ids->count();
+    }
+
+    private function rendezVousEnCours(string $atelierId): Builder
+    {
+        return RendezVous::query()
+            ->where('atelier_id', $atelierId)
+            ->whereIn('statut', self::STATUTS_RDV_EN_COURS);
     }
 
     // ---------------------------------------------------------------------

@@ -282,25 +282,119 @@ class AteliersBackOfficeTest extends TestCase
         $suspendu = $this->atelier(Atelier::STATUT_SUSPENDU);
         $service = $this->mockService();
         $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(0);
+        $service->shouldNotReceive('annulerRendezVousEnCours');
         $service->shouldReceive('changerStatut')->once()->with(self::ID_ATELIER, Atelier::STATUT_SUSPENDU)->andReturn($suspendu);
 
         $this->actingAs($this->user(User::ROLE_ADMIN))
             ->from('/admin/ateliers?page=2')
             ->patch('/admin/ateliers/'.self::ID_ATELIER.'/statut', ['statut' => Atelier::STATUT_SUSPENDU])
             ->assertRedirect('/admin/ateliers?page=2')
+            ->assertSessionHas('success', '« Couture <script>alert(1)</script> Plus » est suspendu : il n\'apparaît plus sur le site.');
+    }
+
+    public function test_suspendre_un_atelier_avec_des_rendez_vous_demande_confirmation(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(3);
+        $service->shouldNotReceive('annulerRendezVousEnCours');
+        $service->shouldNotReceive('changerStatut');
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->from('/admin/ateliers')
+            ->patch('/admin/ateliers/'.self::ID_ATELIER.'/statut', ['statut' => Atelier::STATUT_SUSPENDU])
+            ->assertRedirect('/admin/ateliers')
+            ->assertSessionMissing('success')
+            ->assertSessionHas('confirmation_statut', [
+                'id' => self::ID_ATELIER,
+                'nom' => 'Couture <script>alert(1)</script> Plus',
+                'statut' => Atelier::STATUT_SUSPENDU,
+                'action' => 'Suspendre',
+                'nb' => 3,
+            ]);
+    }
+
+    public function test_suspendre_apres_confirmation_annule_les_rendez_vous_puis_suspend(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->andReturn(3);
+        $service->shouldReceive('annulerRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(3)->globally()->ordered();
+        $service->shouldReceive('changerStatut')->once()->with(self::ID_ATELIER, Atelier::STATUT_SUSPENDU)
+            ->andReturn($this->atelier(Atelier::STATUT_SUSPENDU))->globally()->ordered();
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->from('/admin/ateliers')
+            ->patch('/admin/ateliers/'.self::ID_ATELIER.'/statut', ['statut' => Atelier::STATUT_SUSPENDU, 'annuler_rdv' => '1'])
+            ->assertRedirect('/admin/ateliers')
+            ->assertSessionHas('success', '« Couture <script>alert(1)</script> Plus » est suspendu : il n\'apparaît plus sur le site. '
+                .'3 rendez-vous en cours annulé(s) : les pièces sont rendues à leurs propriétaires.');
+    }
+
+    public function test_reactiver_un_atelier_ne_touche_pas_aux_rendez_vous(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('findOrFail')->andReturn($this->atelier(Atelier::STATUT_SUSPENDU));
+        $service->shouldNotReceive('nbRendezVousEnCours', 'annulerRendezVousEnCours');
+        $service->shouldReceive('changerStatut')->once()->with(self::ID_ATELIER, Atelier::STATUT_ACTIF)->andReturn($this->atelier());
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->patch('/admin/ateliers/'.self::ID_ATELIER.'/statut', ['statut' => Atelier::STATUT_ACTIF])
             ->assertSessionHas('success');
+    }
+
+    public function test_la_confirmation_de_suspension_est_affichee_et_echappee(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('listForAdmin')->andReturn(new LengthAwarePaginator(new Collection(), 0, 15));
+        $service->shouldReceive('statsAdmin')->andReturn(['total' => 0, Atelier::STATUT_ACTIF => 0, Atelier::STATUT_EN_ATTENTE => 0, Atelier::STATUT_SUSPENDU => 0]);
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->withSession(['confirmation_statut' => [
+                'id' => self::ID_ATELIER,
+                'nom' => 'Couture <script>alert(1)</script> Plus',
+                'statut' => Atelier::STATUT_SUSPENDU,
+                'action' => 'Suspendre',
+                'nb' => 3,
+            ]])
+            ->get('/admin/ateliers')
+            ->assertOk()
+            ->assertSee('data-confirmation-statut', false)
+            ->assertSee('a 3 rendez-vous en cours')
+            ->assertDontSee('<script>alert(1)</script>', false)
+            ->assertSee('name="annuler_rdv" value="1"', false)
+            ->assertSee(route('back.ateliers.statut', ['id' => self::ID_ATELIER]), false)
+            ->assertSee('Suspendre et annuler les rendez-vous');
     }
 
     public function test_suppression_annonce_les_services_supprimes(): void
     {
         $service = $this->mockService();
         $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(0);
         $service->shouldReceive('delete')->once()->with(self::ID_ATELIER);
 
         $this->actingAs($this->user(User::ROLE_ADMIN))
             ->delete('/admin/ateliers/'.self::ID_ATELIER)
             ->assertRedirect(route('back.ateliers'))
             ->assertSessionHas('success', 'L\'atelier « Couture <script>alert(1)</script> Plus » ainsi que son service a été supprimé.');
+    }
+
+    public function test_suppression_refusee_si_l_atelier_a_des_rendez_vous_en_cours(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(2);
+        $service->shouldNotReceive('delete');
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->from('/admin/ateliers')
+            ->delete('/admin/ateliers/'.self::ID_ATELIER)
+            ->assertRedirect('/admin/ateliers')
+            ->assertSessionMissing('success')
+            ->assertSessionHas('error', '« Couture <script>alert(1)</script> Plus » a 2 rendez-vous en cours : suppression impossible. '
+                .'Suspendez-le d\'abord : ses rendez-vous seront annulés et les pièces rendues à leurs propriétaires.');
     }
 
     /* --------------------------------------------------------------- Rendu */

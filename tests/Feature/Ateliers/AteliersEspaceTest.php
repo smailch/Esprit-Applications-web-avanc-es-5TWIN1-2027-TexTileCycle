@@ -506,12 +506,30 @@ class AteliersEspaceTest extends TestCase
         $this->mockAteliers($atelier);
         $catalogue = $this->mockCatalogue();
         $catalogue->shouldReceive('find')->andReturn($this->service());
+        $catalogue->shouldReceive('nbRendezVousEnCours')->once()->with($atelier, self::ID_SERVICE)->andReturn(0);
         $catalogue->shouldReceive('delete')->once()->with($atelier, self::ID_SERVICE);
 
         $this->actingAs($this->user())
             ->delete('/admin/ateliers/mes-services/'.self::ID_SERVICE)
             ->assertRedirect(route('back.ateliers.services'))
             ->assertSessionHas('success', 'Le service « Ourlet <b>express</b> » a été supprimé.');
+    }
+
+    public function test_un_service_reserve_dans_des_rendez_vous_en_cours_n_est_pas_supprime(): void
+    {
+        $atelier = $this->atelier();
+        $this->mockAteliers($atelier);
+        $catalogue = $this->mockCatalogue();
+        $catalogue->shouldReceive('find')->andReturn($this->service());
+        $catalogue->shouldReceive('nbRendezVousEnCours')->once()->with($atelier, self::ID_SERVICE)->andReturn(2);
+        $catalogue->shouldNotReceive('delete');
+
+        $this->actingAs($this->user())
+            ->delete('/admin/ateliers/mes-services/'.self::ID_SERVICE)
+            ->assertRedirect(route('back.ateliers.services'))
+            ->assertSessionMissing('success')
+            ->assertSessionHas('error', 'Le service « Ourlet <b>express</b> » est réservé dans 2 rendez-vous en cours : '
+                .'terminez-les ou annulez-les avant de le supprimer, ou modifiez-le plutôt.');
     }
 
     public function test_un_identifiant_qui_n_est_pas_un_object_id_donne_une_404(): void

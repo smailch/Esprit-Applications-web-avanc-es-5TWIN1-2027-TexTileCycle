@@ -106,6 +106,16 @@ class AtelierController extends Controller
         $this->authorize('delete', $atelier);
 
         $nom = $atelier->nom;
+
+        $nbRdv = $this->ateliers->nbRendezVousEnCours($id);
+        if ($nbRdv > 0) {
+            return redirect()->back(302, [], route('back.ateliers'))->with(
+                'error',
+                "« {$nom} » a {$nbRdv} rendez-vous en cours : suppression impossible. "
+                .'Suspendez-le d\'abord : ses rendez-vous seront annulés et les pièces rendues à leurs propriétaires.'
+            );
+        }
+
         $nbServices = $atelier->services->count();
         $this->ateliers->delete($id);
 
@@ -123,16 +133,34 @@ class AtelierController extends Controller
     public function updateStatut(Request $request, string $id)
     {
         $data = $request->validate(
-            ['statut' => ['required', Rule::in(Atelier::STATUTS)]],
+            [
+                'statut' => ['required', Rule::in(Atelier::STATUTS)],
+                'annuler_rdv' => ['nullable', 'boolean'],
+            ],
             [
                 'statut.required' => 'Choisissez un statut.',
                 'statut.in' => 'Ce statut n\'existe pas.',
+                'annuler_rdv.boolean' => 'La confirmation d\'annulation des rendez-vous est invalide.',
             ]
         );
 
         $atelier = $this->ateliers->findOrFail($id);
         $this->authorize('changerStatut', $atelier);
 
+        // Hors du statut actif, le compte atelier est désactivé : ses rendez-vous en cours ne seraient plus traités.
+        // On demande donc confirmation avant de les annuler.
+        $nbRdv = $data['statut'] !== Atelier::STATUT_ACTIF ? $this->ateliers->nbRendezVousEnCours($id) : 0;
+        if ($nbRdv > 0 && ! $request->boolean('annuler_rdv')) {
+            return redirect()->back(302, [], route('back.ateliers'))->with('confirmation_statut', [
+                'id' => $id,
+                'nom' => $atelier->nom,
+                'statut' => $data['statut'],
+                'action' => $data['statut'] === Atelier::STATUT_SUSPENDU ? 'Suspendre' : 'Repasser en attente',
+                'nb' => $nbRdv,
+            ]);
+        }
+
+        $nbAnnules = $nbRdv > 0 ? $this->ateliers->annulerRendezVousEnCours($id) : 0;
         $atelier = $this->ateliers->changerStatut($id, $data['statut']);
 
         $message = match ($atelier->statut) {
@@ -140,6 +168,10 @@ class AtelierController extends Controller
             Atelier::STATUT_SUSPENDU => "« {$atelier->nom} » est suspendu : il n'apparaît plus sur le site.",
             default => "« {$atelier->nom} » est repassé en attente de validation.",
         };
+
+        if ($nbAnnules > 0) {
+            $message .= " {$nbAnnules} rendez-vous en cours annulé(s) : les pièces sont rendues à leurs propriétaires.";
+        }
 
         return redirect()->back(302, [], route('back.ateliers'))->with('success', $message);
     }

@@ -21,6 +21,28 @@
 <div class="ab-page">
     @include('back.ateliers.partials.flash')
 
+    {{-- Changement de statut mis en attente : l'atelier a des rendez-vous en cours (voir AtelierController::updateStatut). --}}
+    @if (is_array(session('confirmation_statut')))
+        @php $confirmation = session('confirmation_statut'); @endphp
+        <div class="ab-alert ab-alert--warning" role="alert" data-confirmation-statut>
+            <i data-lucide="alert-triangle" aria-hidden="true"></i>
+            <div>
+                <p><strong>« {{ $confirmation['nom'] }} » a {{ $confirmation['nb'] }} rendez-vous en cours (en attente ou confirmés).</strong></p>
+                <p>Son compte sera désactivé : ces rendez-vous seront annulés et les pièces rendues à leurs propriétaires.</p>
+                <div class="ab-alert__actions">
+                    <form method="post" action="{{ route('back.ateliers.statut', ['id' => $confirmation['id']]) }}">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="statut" value="{{ $confirmation['statut'] }}">
+                        <input type="hidden" name="annuler_rdv" value="1">
+                        <button type="submit" class="btn btn-primary small">{{ $confirmation['action'] }} et annuler les rendez-vous</button>
+                    </form>
+                    <a href="{{ route('back.ateliers') }}" class="btn btn-secondary small">Ne rien changer</a>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="stats-grid four ab-stats">
         @foreach ($cartes as $carte)
             <a href="{{ route('back.ateliers', array_filter(['statut' => $carte['statut'], 'q' => $filters['q'] ?? null])) }}"

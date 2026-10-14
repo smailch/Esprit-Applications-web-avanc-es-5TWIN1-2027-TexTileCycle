@@ -692,6 +692,8 @@ a.tc-pagination__link:hover {
 .ab-alert--warning { background: #fff7ec; border-color: #f4dcc0; color: #8f4f14; }
 .ab-alert--suspended { background: #f5f1fc; border-color: #ddd3f3; color: #4f3a8c; }
 .ab-alert p { margin: 0; }
+.ab-alert__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ab-alert__actions form { margin: 0; }
 
 .ab-espace-head { overflow: hidden; }
 
