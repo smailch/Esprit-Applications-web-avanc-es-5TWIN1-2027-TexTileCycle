@@ -47,7 +47,7 @@
                         <li class="rating">
                             <i data-lucide="star" aria-hidden="true"></i>
                             <span><span class="sr-only">Note </span>{{ $atelier->noteFormatee() }}<span class="sr-only"> sur 5</span></span>
-                            <span class="atelier-hero__reviews"><span aria-hidden="true">·</span> {{ (int) $atelier->nb_avis }} avis</span>
+                            <a href="#avis" class="atelier-hero__reviews"><span aria-hidden="true">·</span> {{ (int) $atelier->nb_avis }} avis</a>
                         </li>
                         <li>
                             <span @class(['open-badge', 'is-open' => $ouvert])>
@@ -72,6 +72,17 @@
                     <i data-lucide="phone" aria-hidden="true"></i> Appeler
                 </a>
             @endif
+            {{-- Mène à la section Avis ; le libellé dit ce que le client peut y faire. --}}
+            <a href="#avis" class="btn btn-secondary">
+                <i data-lucide="star" aria-hidden="true"></i>
+                @if ($monAvis ?? null)
+                    Mon avis
+                @elseif ($peutDonnerAvis ?? false)
+                    Donner mon avis
+                @else
+                    Avis
+                @endif
+            </a>
             <x-signaler cible-type="Atelier" :cible-id="(string) $atelier->getKey()" />
         </div>
     </div>
@@ -138,6 +149,8 @@
                     </ul>
                 @endif
             </section>
+
+            @include('front.partials.atelier-avis')
         </div>
 
         <aside class="atelier-show__aside" aria-label="Informations pratiques">
@@ -203,6 +216,10 @@
     </div>
 </main>
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('js/avis.js') }}" defer></script>
+@endpush
 
 @if ($aCoordonnees)
     @push('scripts')

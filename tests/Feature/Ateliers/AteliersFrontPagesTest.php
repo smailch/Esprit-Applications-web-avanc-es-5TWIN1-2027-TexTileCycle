@@ -5,6 +5,7 @@ namespace Tests\Feature\Ateliers;
 use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Models\Service;
 use App\Modules\Ateliers\Services\AtelierService;
+use App\Modules\Ateliers\Services\AvisService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -84,6 +85,14 @@ class AteliersFrontPagesTest extends TestCase
         $service->shouldReceive('serviceNames')->andReturn(['Raccourcir un ourlet', 'Retouche denim']);
         $service->shouldReceive('villes')->andReturn(['La Marsa']);
         $this->app->instance(AtelierService::class, $service);
+
+        // La fiche lit aussi les avis (testés dans AvisTest) : aucun ici.
+        $avis = Mockery::mock(AvisService::class)->makePartial();
+        $avis->shouldReceive('resume')->andReturn(AvisService::resumeDe(collect()));
+        $avis->shouldReceive('recents')->andReturn(new Collection());
+        $avis->shouldReceive('avisDe')->andReturnNull();
+        $avis->shouldReceive('peutDonnerAvis')->andReturnFalse();
+        $this->app->instance(AvisService::class, $avis);
 
         return $service;
     }

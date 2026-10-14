@@ -26,6 +26,13 @@ class AteliersModuleServiceProvider extends ServiceProvider
      */
     public const LIMITEUR_DIAGNOSTIC = 'ateliers-diagnostic';
 
+    /**
+     * Limiteur des avis (publication, modification, suppression) : contre les envois en rafale.
+     */
+    public const LIMITEUR_AVIS = 'ateliers-avis';
+
+    public const AVIS_PAR_MINUTE = 10;
+
     public function register(): void
     {
         $this->mergeConfigFrom(app_path('Modules/Ateliers/Config/diagnostic.php'), 'ateliers_diagnostic');
@@ -47,6 +54,11 @@ class AteliersModuleServiceProvider extends ServiceProvider
 
         RateLimiter::for(self::LIMITEUR_DIAGNOSTIC, function (Request $request) {
             return Limit::perMinute(max(1, (int) config('ateliers_diagnostic.par_minute')))
+                ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for(self::LIMITEUR_AVIS, function (Request $request) {
+            return Limit::perMinute(self::AVIS_PAR_MINUTE)
                 ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip()));
         });
     }

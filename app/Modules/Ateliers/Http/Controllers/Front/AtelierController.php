@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Ateliers\Http\Requests\SearchAteliersRequest;
 use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Services\AtelierService;
+use App\Modules\Ateliers\Services\AvisService;
 use App\Modules\Vetements\Models\Vetement;
 use App\Modules\Vetements\Services\VetementService;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +29,7 @@ class AtelierController extends Controller
     public function __construct(
         private AtelierService $ateliers,
         private VetementService $vetements,
+        private AvisService $avis,
     ) {
     }
 
@@ -61,8 +63,13 @@ class AtelierController extends Controller
         $marker = $this->ateliers->toMarkers(collect([$atelier]));
 
         $listQuery = $this->listQuery($request);
+        $user = $request->user();
 
         return view('front.atelier-show', [
+            'avisResume' => $this->avis->resume($atelier),
+            'avisRecents' => $this->avis->recents($atelier),
+            'monAvis' => $this->avis->avisDe($user, $atelier),
+            'peutDonnerAvis' => $this->avis->peutDonnerAvis($user, $atelier),
             'atelier' => $atelier,
             'markers' => $marker,
             'retourUrl' => route('front.ateliers', $listQuery),

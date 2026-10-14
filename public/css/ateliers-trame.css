@@ -486,6 +486,257 @@
 
 .tr-page .diag-incertain { border-radius: 0; }
 
+/* ================================================================ avis clients (fiche atelier) */
+
+.tr-page .avis { scroll-margin-top: calc(var(--tr-nav-h) + 16px); }
+
+.tr-bandeau a.atelier-hero__reviews { text-decoration: none; }
+.tr-bandeau a.atelier-hero__reviews:hover { color: var(--tr-texte); text-decoration: underline; }
+
+.avis__verifies {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.avis__verifies svg { width: 15px; height: 15px; color: var(--green); }
+
+/* Étoiles en lecture seule : pleines en ambre, vides en simple trait. */
+.etoiles { display: inline-flex; align-items: center; gap: 2px; }
+.etoiles svg { width: 15px; height: 15px; color: var(--tr-filet-clair); fill: none; }
+.etoiles svg.is-pleine { color: #e3a008; fill: currentColor; }
+.etoiles--lg svg { width: 18px; height: 18px; }
+
+.avis-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 10px 0 10px 14px;
+  border-left: 2px solid var(--green);
+  color: var(--green-dark);
+  font-weight: 600;
+}
+
+.avis-message svg { width: 17px; height: 17px; flex: none; }
+
+/* Résumé : grande note à gauche, répartition en barres à droite. */
+.avis-resume {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 48px);
+  align-items: center;
+  margin-top: 20px;
+  padding: 20px 0;
+  border-top: 1px solid var(--tr-filet-clair);
+  border-bottom: 1px solid var(--tr-filet-clair);
+}
+
+.avis-resume__note { display: grid; justify-items: start; gap: 6px; }
+
+.avis-resume__note strong {
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -.03em;
+}
+
+.avis-resume__note .muted { font-size: 13px; }
+
+.avis-barres { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.avis-barres li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 28px;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.avis-barres__note { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); }
+.avis-barres__note svg { width: 12px; height: 12px; color: #e3a008; fill: currentColor; }
+.avis-barres__nombre { color: var(--muted); text-align: right; }
+
+.avis-barres progress {
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tr-trame-clair);
+  overflow: hidden;
+  appearance: none;
+}
+
+.avis-barres progress::-webkit-progress-bar { background: rgb(24 51 42 / .07); border-radius: 999px; }
+.avis-barres progress::-webkit-progress-value { background: #e3a008; border-radius: 999px; }
+.avis-barres progress::-moz-progress-bar { background: #e3a008; border-radius: 999px; }
+
+/* Espace du client connecté. */
+.avis-moi { display: grid; gap: 16px; margin-top: 20px; }
+
+.avis-invite {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.avis-invite svg { width: 18px; height: 18px; flex: none; margin-top: 2px; color: var(--green); }
+.avis-invite a { color: var(--green-dark); font-weight: 650; }
+
+.avis-formulaire,
+.avis-supprimer { margin: 0; }
+
+.avis-formulaire > summary,
+.avis-supprimer > summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--green-dark);
+  font-weight: 650;
+}
+
+.avis-supprimer > summary { color: var(--muted); font-size: 13px; font-weight: 600; }
+.avis-supprimer form { display: grid; justify-items: start; gap: 8px; margin-top: 10px; font-size: 14px; }
+.avis-supprimer p { margin: 0; color: var(--muted); }
+
+.avis-form {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+  margin-top: 14px;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--tr-filet-clair);
+}
+
+.avis-form .avis-champ { width: 100%; }
+.tr-page .avis-form textarea { border-color: var(--tr-filet-clair); }
+
+.avis-note { margin: 0; padding: 0; border: 0; }
+.avis-note legend { margin-bottom: 6px; padding: 0; font-size: 13px; font-weight: 650; }
+
+/* Saisie : étoiles dans l'ordre 5 → 1 dans le HTML, affichées 1 → 5 ; « ~ » colore la note choisie et celles d'avant. */
+.avis-note__choix {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  vertical-align: middle;
+}
+
+.avis-note__choix label {
+  padding: 2px;
+  cursor: pointer;
+  color: rgb(24 51 42 / .28);
+  transition: color .12s ease, transform .12s var(--tr-entree);
+}
+
+.avis-note__choix svg { width: 30px; height: 30px; fill: none; }
+
+.avis-note__choix label:hover,
+.avis-note__choix label:hover ~ label,
+.avis-note__choix input:checked ~ label { color: #e3a008; }
+
+.avis-note__choix label:hover svg,
+.avis-note__choix label:hover ~ label svg,
+.avis-note__choix input:checked ~ label svg { fill: currentColor; }
+
+.avis-note__choix label:active { transform: scale(.9); }
+
+.avis-note__choix input:focus-visible + label {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.avis-note__libelle {
+  margin-left: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.avis-note.has-error legend { color: #a3352a; }
+
+.avis-compteur { justify-self: end; color: var(--muted); font-size: 12px; }
+.avis-compteur.is-depasse { color: #a3352a; font-weight: 650; }
+
+/* Cartes d'avis : simples lignes séparées par un filet, comme les services. */
+.avis-liste { margin: 8px 0 0; padding: 0; list-style: none; }
+
+.avis-carte {
+  display: grid;
+  gap: 8px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--tr-filet-clair);
+}
+
+.avis-carte--moi {
+  padding: 16px 18px;
+  border: 1px solid var(--tr-filet-clair);
+  border-left: 2px solid var(--green);
+  background: var(--tr-papier);
+}
+
+.avis-carte__tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.avis-carte__tete h3 { margin: 0; font-size: 15px; }
+
+.avis-carte__avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-weight: 700;
+}
+
+.avis-carte__auteur { display: grid; gap: 2px; min-width: 0; }
+.avis-carte__auteur strong { font-size: 15px; overflow-wrap: anywhere; }
+
+.avis-carte__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.avis-carte__badge svg { width: 13px; height: 13px; }
+
+.avis-carte__date { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+.avis-carte__note { display: flex; align-items: center; gap: 8px; }
+.avis-carte__libelle { color: var(--muted); font-size: 13px; font-weight: 600; }
+
+.avis-carte__texte {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.avis-liste__suite { margin: 12px 0 0; font-size: 13px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .avis-note__choix label { transition: none; }
+}
+
+@media (max-width: 560px) {
+  .avis-resume { grid-template-columns: minmax(0, 1fr); }
+  .avis-carte__date { margin-left: 0; width: 100%; }
+}
+
 /* ================================================================ responsive */
 
 @media (max-width: 1100px) {

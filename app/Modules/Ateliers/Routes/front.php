@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Ateliers\Http\Controllers\Front\AtelierController;
+use App\Modules\Ateliers\Http\Controllers\Front\AvisController;
 use App\Modules\Ateliers\Http\Controllers\Front\DiagnosticController;
 use App\Modules\Ateliers\Providers\AteliersModuleServiceProvider;
 use Illuminate\Support\Facades\Route;
@@ -17,3 +18,11 @@ Route::post('/ateliers/diagnostic', [DiagnosticController::class, 'store'])
 Route::get('/ateliers/{id}', [AtelierController::class, 'show'])
     ->where('id', '[0-9a-fA-F]{24}')
     ->name('ateliers.show');
+
+// Avis du client connecté (un seul par atelier, réservé après un rendez-vous terminé).
+Route::middleware(['citizen', 'throttle:'.AteliersModuleServiceProvider::LIMITEUR_AVIS])
+    ->where(['id' => '[0-9a-fA-F]{24}'])
+    ->group(function () {
+        Route::post('/ateliers/{id}/avis', [AvisController::class, 'store'])->name('ateliers.avis.store');
+        Route::delete('/ateliers/{id}/avis', [AvisController::class, 'destroy'])->name('ateliers.avis.destroy');
+    });
