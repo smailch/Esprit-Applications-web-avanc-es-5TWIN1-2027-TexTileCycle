@@ -1,0 +1,137 @@
+/* Étiquette QR du passeport de réparation (page autonome, faite pour l'impression). */
+
+:root {
+  --pe-encre: #10251b;
+  --pe-doux: #5b6b62;
+  --pe-vert: #2e7d32;
+  --pe-filet: #c9d6cd;
+  --pe-fond: #eef3ef;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--pe-fond);
+  color: var(--pe-encre);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.pe-page {
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+  padding: 24px 16px 40px;
+}
+
+.pe-barre {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.pe-barre p { margin: 0; }
+.pe-aide { color: var(--pe-doux); font-size: 13px; }
+
+.pe-bouton {
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pe-vert);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pe-bouton:focus-visible { outline: 3px solid #a5d6a7; outline-offset: 2px; }
+
+/* 60 × 90 mm : assez grand pour un QR lisible (≈ 40 mm), assez petit pour une étiquette cousue. */
+.pe-etiquette {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2mm;
+  width: 60mm;
+  height: 90mm;
+  padding: 5mm;
+  border: 1px dashed var(--pe-filet);
+  background: #fff;
+  text-align: center;
+}
+
+.pe-etiquette__tete {
+  display: flex;
+  align-items: center;
+  gap: 2.5mm;
+  width: 100%;
+  padding-bottom: 2mm;
+  border-bottom: 0.3mm solid var(--pe-encre);
+  text-align: left;
+}
+
+.pe-logo {
+  display: grid;
+  place-items: center;
+  width: 8mm;
+  height: 8mm;
+  flex: none;
+  border-radius: 50%;
+  background: var(--pe-vert);
+  color: #fff;
+  font-size: 3mm;
+  font-weight: 800;
+}
+
+.pe-kicker {
+  margin: 0;
+  color: var(--pe-vert);
+  font-size: 2.4mm;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pe-etiquette h1 { margin: 0; font-size: 3.6mm; line-height: 1.15; }
+
+.pe-qr { width: 42mm; height: 42mm; margin-top: 1mm; }
+
+.pe-numero {
+  margin: 0;
+  font-size: 4mm;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.pe-consigne { margin: 0; color: var(--pe-doux); font-size: 2.6mm; }
+
+.pe-etiquette__pied {
+  display: grid;
+  gap: .6mm;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 2mm;
+  border-top: 0.2mm solid var(--pe-filet);
+  font-size: 2.5mm;
+}
+
+.pe-etiquette__pied span:first-child { font-weight: 700; }
+
+.pe-url {
+  max-width: 100%;
+  margin: 0;
+  color: var(--pe-doux);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@page { margin: 12mm; }
+
+@media print {
+  body { background: #fff; }
+  .pe-page { padding: 0; }
+  .pe-barre,
+  .pe-url { display: none; }
+  .pe-etiquette { break-inside: avoid; }
+}

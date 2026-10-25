@@ -1,0 +1,232 @@
+/* =========================================================================
+   Passeport de réparation : page publique (QR) et « Mes passeports ». Style « trame ».
+   ========================================================================= */
+
+.pp-kicker {
+  margin: 0 0 8px;
+  color: var(--tr-vert);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pp-sceau {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid rgb(143 209 154 / .45);
+  border-radius: 999px;
+  color: var(--tr-vert);
+  font-weight: 650;
+}
+
+.pp-sceau svg { width: 20px; height: 20px; }
+.pp-sceau.is-revoque { border-color: rgb(255 138 128 / .5); color: #ff8a80; }
+
+.tr-page .pp.page-content { padding-top: clamp(28px, 4vw, 48px); }
+
+/* Historique sur 5 colonnes de la trame, garanties et partage sur 3. */
+.pp-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
+}
+
+.pp-historique { padding-right: clamp(16px, 2.4vw, 40px); }
+
+.pp h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: -.01em; }
+.pp-cote h2 { font-size: 17px; }
+
+/* Frise verticale : un point de couture par réparation. */
+.pp-frise {
+  position: relative;
+  display: grid;
+  gap: 0;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pp-frise::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 17px;
+  border-left: 1px dashed var(--tr-filet-clair);
+}
+
+.pp-frise__etape {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 0;
+}
+
+.pp-frise__point {
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--tr-filet-clair);
+  border-radius: 50%;
+  background: var(--tr-papier);
+  color: var(--muted);
+}
+
+.pp-frise__point svg { width: 16px; height: 16px; }
+
+.pp-frise__etape.is-actuel .pp-frise__point {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+
+.pp-frise__corps { display: grid; gap: 4px; justify-items: start; }
+.pp-frise__corps h3 { margin: 0; font-size: 17px; }
+.pp-frise__date { margin: 0; color: var(--muted); font-size: 13px; font-weight: 600; }
+
+.pp-frise__atelier {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.pp-frise__atelier svg { width: 15px; height: 15px; }
+.pp-frise__atelier a { color: var(--green-dark); font-weight: 650; }
+
+.pp-frise__badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pp-cote { display: grid; align-content: start; gap: clamp(32px, 4vw, 48px); }
+
+.pp-garanties ul { display: grid; gap: 12px; margin: 14px 0 0; padding: 0; list-style: none; }
+
+.pp-garanties li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pp-garanties svg { width: 18px; height: 18px; margin-top: 2px; color: var(--green); }
+
+.pp-partage { display: grid; justify-items: start; gap: 10px; }
+.pp-partage p { margin: 0; font-size: 13px; }
+
+.pp-partage__qr {
+  width: 140px;
+  height: 140px;
+  border: 1px solid var(--tr-filet-clair);
+  background: #fff;
+}
+
+.pp-partage__url { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+
+.pp-revoque {
+  max-width: 720px;
+  padding: 20px 0 20px 18px;
+  border-left: 2px solid #c62828;
+}
+
+.pp-revoque h2 { display: flex; align-items: center; gap: 10px; color: #a3352a; }
+.pp-revoque h2 svg { width: 22px; height: 22px; }
+.pp-revoque p { margin: 8px 0 0; line-height: 1.6; }
+
+/* « Mes passeports » du client. */
+.mp-liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 0;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--tr-filet-clair);
+}
+
+.mp-carte {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 18px 16px 18px 0;
+  border-bottom: 1px solid var(--tr-filet-clair);
+}
+
+.mp-carte__qr {
+  width: 88px;
+  height: 88px;
+  border: 1px solid var(--tr-filet-clair);
+  background: #fff;
+}
+
+.mp-carte__corps { display: grid; gap: 4px; justify-items: start; min-width: 0; }
+.mp-carte__corps h2 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+.mp-carte__corps p { margin: 0; color: var(--muted); font-size: 13px; }
+.mp-carte__liens { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; }
+.mp-carte__liens a { color: var(--green-dark); font-size: 13px; font-weight: 650; }
+.mp-carte.is-revoque { opacity: .65; }
+
+@media (max-width: 850px) {
+  .pp-layout { grid-template-columns: minmax(0, 1fr); row-gap: clamp(40px, 6vw, 56px); }
+  .pp-historique { padding-right: 0; }
+}
+
+/* Détails d'une réparation : service, mot de l'atelier, réputation, garantie. */
+.pp-frise__service {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pp-frise__duree { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 13px; }
+.pp-frise__duree svg { width: 14px; height: 14px; }
+
+.pp-frise__mot {
+  margin: 6px 0 2px;
+  padding: 8px 0 8px 14px;
+  border-left: 2px solid var(--green);
+}
+
+.pp-frise__mot p { margin: 0; font-style: italic; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.pp-frise__mot footer { margin-top: 4px; color: var(--muted); font-size: 12px; }
+
+.pp-frise__note { display: inline-flex; align-items: center; gap: 4px; color: var(--ink); font-weight: 600; }
+.pp-frise__note svg { color: #e3a008; fill: currentColor; }
+
+.pp-frise__garantie {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 4px 10px;
+  border: 1px solid var(--tr-filet-clair);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pp-frise__garantie svg { width: 15px; height: 15px; }
+.pp-frise__garantie.is-active { border-color: #b7dcbb; background: #edf7ee; color: var(--green-dark); }

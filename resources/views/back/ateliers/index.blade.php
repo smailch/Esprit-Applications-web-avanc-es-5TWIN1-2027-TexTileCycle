@@ -78,7 +78,10 @@
                 <a href="{{ route('back.ateliers') }}" class="link-button ab-reset"><i data-lucide="x" aria-hidden="true"></i> Effacer les filtres</a>
             @endif
         </form>
-        <a href="{{ route('back.ateliers.create') }}" class="btn btn-primary"><i data-lucide="plus" aria-hidden="true"></i> Nouvel atelier</a>
+        <div class="ab-toolbar__actions">
+            <a href="{{ route('back.ateliers.passeports.admin') }}" class="btn btn-secondary"><i data-lucide="qr-code" aria-hidden="true"></i> Passeports</a>
+            <a href="{{ route('back.ateliers.create') }}" class="btn btn-primary"><i data-lucide="plus" aria-hidden="true"></i> Nouvel atelier</a>
+        </div>
     </div>
 
     @if ($ateliers->isEmpty())

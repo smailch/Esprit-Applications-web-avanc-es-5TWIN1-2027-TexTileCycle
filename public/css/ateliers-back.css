@@ -947,3 +947,76 @@ a.tc-pagination__link:hover {
   .ab-table tbody tr { transition: none; }
   .ab-stat:hover { transform: none; }
 }
+
+/* ---------- Passeports de réparation (espace atelier) ---------- */
+
+.ab-passeports-intro {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 20px;
+}
+
+.ab-passeports-intro h2 { margin: 0 0 4px; font-size: 17px; }
+.ab-passeports-intro p { margin: 0; color: var(--muted); }
+
+.ab-passeports-intro__icone {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+}
+
+.ab-passeports-intro__icone svg { width: 22px; height: 22px; }
+
+.ab-passeports-intro p.ab-passeports-intro__compte { color: var(--ink); white-space: nowrap; }
+.ab-passeports-intro__compte strong { font-size: 22px; }
+
+@media (max-width: 640px) {
+  .ab-passeports-intro { grid-template-columns: auto minmax(0, 1fr); }
+  .ab-passeports-intro__compte { grid-column: 1 / -1; }
+}
+
+.ab-toolbar__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ab-retour { margin: 0; }
+.ab-retour .link-button { display: inline-flex; align-items: center; gap: 6px; }
+.ab-retour svg { width: 16px; height: 16px; }
+.ab-btn-revoquer { color: #a3352a; }
+.ab-btn-revoquer:hover { border-color: #e3a49c; }
+
+@media (max-width: 760px) {
+  .ab-toolbar__actions { width: 100%; }
+  .ab-toolbar__actions .btn { flex: 1; }
+}
+
+/* Générer un passeport : formulaire replié dans la ligne du tableau. */
+.ab-generer > summary { list-style: none; cursor: pointer; }
+.ab-generer > summary::-webkit-details-marker { display: none; }
+.ab-generer[open] > summary { margin-bottom: 10px; }
+
+.ab-generer__form {
+  display: grid;
+  gap: 6px;
+  width: min(280px, 100%);
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: left;
+}
+
+.ab-generer__form label { font-size: 12px; font-weight: 650; }
+.ab-generer__form textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+.ab-generer__form .btn { justify-self: start; margin-top: 4px; }

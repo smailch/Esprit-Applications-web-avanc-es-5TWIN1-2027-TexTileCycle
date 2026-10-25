@@ -2,7 +2,10 @@
 
 use App\Modules\Ateliers\Http\Controllers\Back\AtelierController;
 use App\Modules\Ateliers\Http\Controllers\Back\MonAtelierController;
+use App\Modules\Ateliers\Http\Controllers\Back\MonPasseportController;
 use App\Modules\Ateliers\Http\Controllers\Back\MonServiceController;
+use App\Modules\Ateliers\Http\Controllers\Back\PasseportAdminController;
+use App\Modules\Ateliers\Models\Passeport;
 use App\Modules\Ateliers\Providers\AteliersModuleServiceProvider;
 use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
 use Illuminate\Support\Facades\Route;
@@ -32,9 +35,19 @@ Route::prefix('ateliers')->name('ateliers.')->group(function () use ($atelierObj
     Route::post('/mes-services', [MonServiceController::class, 'store'])->middleware($precognition)->name('services.store');
     Route::put('/mes-services/{id}', [MonServiceController::class, 'update'])->where('id', $atelierObjectId)->middleware($precognition)->name('services.update');
     Route::delete('/mes-services/{id}', [MonServiceController::class, 'destroy'])->where('id', $atelierObjectId)->name('services.destroy');
+
+    // Passeports de réparation (QR) des réparations terminées.
+    Route::get('/mes-passeports', [MonPasseportController::class, 'index'])->name('passeports');
+    Route::post('/mes-passeports', [MonPasseportController::class, 'store'])->name('passeports.store');
+    Route::get('/mes-passeports/{code}/etiquette', [MonPasseportController::class, 'etiquette'])
+        ->where('code', Passeport::FORMAT_CODE)
+        ->name('passeports.etiquette');
 });
 
 Route::middleware('admin')->prefix('ateliers')->name('ateliers.')->group(function () use ($atelierObjectId, $precognition) {
+    Route::get('/passeports', [PasseportAdminController::class, 'index'])->name('passeports.admin');
+    Route::patch('/passeports/{id}/revocation', [PasseportAdminController::class, 'revocation'])->where('id', $atelierObjectId)->name('passeports.revocation');
+
     Route::get('/creer', [AtelierController::class, 'create'])->name('create');
     Route::post('/', [AtelierController::class, 'store'])->middleware($precognition)->name('store');
     Route::get('/{id}/modifier', [AtelierController::class, 'edit'])->where('id', $atelierObjectId)->name('edit');

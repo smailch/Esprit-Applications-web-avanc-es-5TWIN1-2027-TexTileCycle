@@ -33,6 +33,14 @@ class AteliersModuleServiceProvider extends ServiceProvider
 
     public const AVIS_PAR_MINUTE = 10;
 
+    /**
+     * Limiteur des pages publiques de passeport (QR) : une consultation normale reste loin de la limite,
+     * un balayage de codes au hasard est freiné.
+     */
+    public const LIMITEUR_PASSEPORT = 'ateliers-passeport';
+
+    public const PASSEPORTS_PAR_MINUTE = 60;
+
     public function register(): void
     {
         $this->mergeConfigFrom(app_path('Modules/Ateliers/Config/diagnostic.php'), 'ateliers_diagnostic');
@@ -55,6 +63,10 @@ class AteliersModuleServiceProvider extends ServiceProvider
         RateLimiter::for(self::LIMITEUR_DIAGNOSTIC, function (Request $request) {
             return Limit::perMinute(max(1, (int) config('ateliers_diagnostic.par_minute')))
                 ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for(self::LIMITEUR_PASSEPORT, function (Request $request) {
+            return Limit::perMinute(self::PASSEPORTS_PAR_MINUTE)->by($request->ip());
         });
 
         RateLimiter::for(self::LIMITEUR_AVIS, function (Request $request) {

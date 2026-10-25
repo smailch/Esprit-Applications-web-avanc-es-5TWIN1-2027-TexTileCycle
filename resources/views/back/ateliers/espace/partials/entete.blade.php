@@ -1,9 +1,10 @@
-{{-- En-tête commun de l'espace atelier. Paramètres : $atelier, $onglet ('profil' | 'services'), $nbServices. --}}
+{{-- En-tête commun de l'espace atelier. Paramètres : $atelier, $onglet ('profil' | 'services' | 'passeports'), $nbServices. --}}
 @php
     $statut = $atelier->statut;
     $onglets = [
         'profil' => ['route' => 'back.ateliers.profil', 'label' => 'Mon profil', 'icon' => 'store'],
         'services' => ['route' => 'back.ateliers.services', 'label' => 'Mes services', 'icon' => 'scissors'],
+        'passeports' => ['route' => 'back.ateliers.passeports', 'label' => 'Passeports', 'icon' => 'qr-code'],
         'rdv' => ['route' => 'back.rdv', 'label' => 'Rendez-vous', 'icon' => 'calendar-days'],
         'pieces' => ['route' => 'back.vetements', 'label' => 'Pièces à traiter', 'icon' => 'shirt'],
     ];
