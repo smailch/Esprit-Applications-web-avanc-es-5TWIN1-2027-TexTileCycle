@@ -86,7 +86,7 @@ class AtelierVetementsBackTest extends TestCase
             ->assertOk()
             ->assertSee('Veste denim')
             ->assertSee('Yasmine Ben Ali')
-            ->assertSee('Démarrer la réparation')
+            ->assertSee('Confirmer le rendez-vous')
             ->assertDontSee('listAllForBackOffice');
     }
 

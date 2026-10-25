@@ -60,7 +60,7 @@ class VetementController extends Controller
 
         $message = $data['status'] === Vetement::STATUS_REPARE
             ? 'Pièce marquée réparée.'
-            : 'Réparation démarrée pour cette pièce.';
+            : 'Rendez-vous confirmé pour cette pièce.';
 
         return back()->with('success', $message);
     }

@@ -35,7 +35,10 @@ class CycleVieHistoriqueTest extends TestCase
             'status_snapshot' => Vetement::STATUS_DONNE,
         ]);
 
+        $analyseIa = new CycleVieEvent(['step_key' => CycleVieEvent::STEP_ANALYSE_IA]);
+
         $this->assertSame('plus-circle', $declare->icon());
         $this->assertSame('gift', $termineDon->icon());
+        $this->assertSame('sparkles', $analyseIa->icon());
     }
 }

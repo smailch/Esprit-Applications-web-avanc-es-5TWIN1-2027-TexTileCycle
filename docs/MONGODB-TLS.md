@@ -7,14 +7,26 @@ TLS handshake failed: error:14094438:SSL routines:ssl3_read_bytes:tlsv1 alert in
 No suitable servers found (`serverSelectionTryOnce` set)
 ```
 
-## 1. Autoriser votre IP dans Atlas (cause la plus fréquente)
+## 1. IP dynamique (plus besoin de la ressaisir à chaque lancement)
 
-1. [MongoDB Atlas](https://cloud.mongodb.com) → votre projet **TexTileCycle**
-2. **Network Access** (menu gauche)
-3. **Add IP Address** → **Add Current IP Address**
-4. Attendre 1–2 minutes, puis retester
+En local, `php artisan serve`, `db:seed` et `migrate` envoient l’IP publique actuelle à Atlas et retirent l’IP automatique précédente.
 
-En développement seulement : `0.0.0.0/0` (accès depuis n’importe quelle IP — **ne pas utiliser en production**).
+Une seule fois dans `.env` :
+
+```env
+ATLAS_IP_SYNC=true
+ATLAS_PROJECT_ID=votre_project_id
+ATLAS_PUBLIC_KEY=votre_cle_publique
+ATLAS_PRIVATE_KEY=votre_cle_privee
+```
+
+1. [MongoDB Atlas](https://cloud.mongodb.com) → projet **TexTileCycle** → **Project Settings** : copier le Project ID
+2. **Access Manager** → **Project Access** → **API Keys** → **Create API Key**, rôle **Project Owner**
+3. Coller les trois valeurs dans `.env`, puis `php artisan mongodb:sync-ip`
+
+Si l’IP vient d’être ajoutée, Atlas peut mettre jusqu’à une minute pour l’activer.
+
+En développement seulement, Network Access → `0.0.0.0/0` ouvre toutes les IP (**ne pas utiliser en production**).
 
 ## 2. Certificats TLS (Windows / XAMPP)
 

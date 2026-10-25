@@ -6,27 +6,33 @@
         <div>
             <p class="kicker">Mon espace citoyen</p>
             <h1>Mes vêtements</h1>
-            <p class="muted">Suivez vos pièces en cours. Les réparations et dons validés passent dans l'historique.</p>
+            <p class="muted">Suivez vos pièces en cours. Les réparations et dons validés passent dans l'historique.@if($analysePhotoDisponible) À la déclaration, la photo estime si une réparation a une deuxième chance.@endif</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a href="{{ route('front.historique') }}" class="btn btn-secondary"><i data-lucide="history"></i> Historique</a>
             <button type="button" class="btn btn-primary" data-open-modal="clothing-modal"><i data-lucide="plus"></i> Déclarer un vêtement</button>
+            @if($styleDisponible)
+                <button type="button" class="btn btn-secondary" data-open-modal="style-modal"><i data-lucide="box"></i> Nouveau style 3D</button>
+            @endif
         </div>
     </div>
 
     @if($vetements->isNotEmpty())
-    @php($vetementAReparer = $vetements->first(fn ($v) => $v->intended_action === 'reparation'))
+    @php($suggestionIa = $vetements->first(fn ($v) => ($v->analyseIa()['verdict'] ?? null) === 'reparable'))
+    @php($vetementAReparer = $suggestionIa ?? $vetements->first(fn ($v) => $v->intended_action === 'reparation'))
     <div class="ai-banner">
         <i data-lucide="sparkles"></i>
         <div>
-            <strong>Suggestion intelligente</strong>
-            @if($vetementAReparer)
+            <strong>{{ $suggestionIa ? 'Deuxième chance détectée' : 'Suggestion intelligente' }}</strong>
+            @if($suggestionIa)
+                <p>{{ $suggestionIa->analyseIa()['resume'] ?? '' }}</p>
+            @elseif($vetementAReparer)
                 <p>Trouvez un atelier pour réparer « {{ $vetementAReparer->displayName() }} ». Le rendez-vous sera prérempli.</p>
             @else
                 <p>Consultez les ateliers partenaires pour faire réparer vos pièces.</p>
             @endif
         </div>
-        <a href="{{ $vetementAReparer?->nextStepUrl() ?? route('front.ateliers') }}" class="link-button">Trouver un atelier <i data-lucide="arrow-right"></i></a>
+        <a href="{{ $suggestionIa ? route('front.ateliers', ['vetement_id' => (string) $suggestionIa->getKey()]) : ($vetementAReparer?->nextStepUrl() ?? route('front.ateliers')) }}" class="link-button">Trouver un atelier <i data-lucide="arrow-right"></i></a>
     </div>
     @endif
 
@@ -46,6 +52,15 @@
                         </div>
                         <x-status-badge :tone="$vetement->statusTone()">{{ $vetement->statusLabel() }}</x-status-badge>
                     </div>
+                    @if($vetement->analyseIa())
+                        <div class="analyse-ia analyse-ia--{{ $vetement->analyseIa()['verdict'] ?? 'hors_sujet' }}">
+                            <div class="analyse-ia-head">
+                                <i data-lucide="sparkles"></i>
+                                <strong>{{ $vetement->libelleVerdictAnalyse() }}</strong>
+                            </div>
+                            <p>{{ $vetement->analyseIa()['resume'] ?? '' }}</p>
+                        </div>
+                    @endif
                     <div class="condition"><span>État</span><strong>{{ $vetement->condition_label ?? '—' }}</strong></div>
                     <div class="condition" style="margin-top:6px"><span>Matière</span><strong>{{ $vetement->material ?? '—' }}</strong></div>
                     <div class="condition" style="margin-top:8px">
@@ -76,6 +91,19 @@
                         @if($vetement->nextStepUrl())
                             <a href="{{ $vetement->nextStepUrl() }}" class="btn btn-primary small">{{ $vetement->nextStepLabel() }}</a>
                         @endif
+                        @if($analysePhotoDisponible && $vetement->image_path)
+                            <form method="post" action="{{ route('front.vetements.analyser.piece', $vetement->getKey()) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-secondary small">
+                                    <i data-lucide="sparkles"></i> {{ $vetement->analyseIa() ? 'Relancer l\'analyse' : 'Analyser l\'état' }}
+                                </button>
+                            </form>
+                        @endif
+                        @if($styleDisponible && $vetement->image_path)
+                            <button type="button" class="btn btn-secondary small" data-style-piece="{{ route('front.vetements.style.piece', $vetement->getKey()) }}">
+                                <i data-lucide="box"></i> Style 3D
+                            </button>
+                        @endif
                         @else
                             <a href="{{ route('front.historique') }}" class="btn btn-secondary small"><i data-lucide="history"></i> Voir l'historique</a>
                         @endunless
@@ -91,7 +119,9 @@
     </div>
 </main>
 
-<x-clothing-modal />
+<x-clothing-modal :disponible="$analysePhotoDisponible" />
+<x-clothing-chat :disponible="$chatDisponible" />
+<x-style-modal :disponible="$styleDisponible" />
 @endsection
 
 @if($errors->any())

@@ -40,7 +40,7 @@ class MongodbPingCommand extends Command
             $this->error($e->getMessage());
             $this->newLine();
             $this->warn('Vérifications Atlas (dans l’ordre) :');
-            $this->line('1. Network Access → Add Current IP Address (ou 0.0.0.0/0 en dev)');
+            $this->line('1. php artisan mongodb:sync-ip (IP dynamique) ou Network Access → 0.0.0.0/0 en dev');
             $this->line('2. Database Access → utilisateur avec mot de passe à jour');
             $this->line('3. .env → MONGODB_TLS_CA_FILE=storage/certs/cacert.pem');
             $this->line('4. php.ini → extension=mongodb + OpenSSL récent (PHP 8.2+ recommandé)');

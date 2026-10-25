@@ -43,6 +43,41 @@ class VetementService
         return $query->get();
     }
 
+    /**
+     * Résumé des pièces du citoyen, sans photo ni identifiant, pour le conseiller textile.
+     *
+     * @return list<array{nom: string, matiere: string, etat: string, statut: string, parcours: string, verdict: string, resume: string}>
+     */
+    public function contexteChat(User $user): array
+    {
+        $pieces = $this->listActifsForOwner($user)
+            ->concat($this->listHistoriqueForOwner($user))
+            ->take(12);
+
+        return $pieces
+            ->map(fn (Vetement $vetement) => $this->decrirePourChat($vetement))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{nom: string, matiere: string, etat: string, statut: string, parcours: string, verdict: string, resume: string}
+     */
+    public function decrirePourChat(Vetement $vetement): array
+    {
+        $analyse = $vetement->analyseIa() ?? [];
+
+        return [
+            'nom' => $vetement->displayName(),
+            'matiere' => (string) ($vetement->material ?? ''),
+            'etat' => (string) ($vetement->condition_label ?? ''),
+            'statut' => $vetement->statusLabel(),
+            'parcours' => $vetement->intendedActionLabel(),
+            'verdict' => (string) ($vetement->libelleVerdictAnalyse() ?? ''),
+            'resume' => mb_substr(trim((string) ($analyse['resume'] ?? '')), 0, 180),
+        ];
+    }
+
     public function listAllForBackOffice(int $limit = 50): Collection
     {
         return Vetement::query()
@@ -194,6 +229,7 @@ class VetementService
             'image_url' => $data['image_url'] ?? null,
             'image_path' => $data['image_path'] ?? null,
             'intended_action' => $data['intended_action'] ?? null,
+            'analyse_ia' => is_array($data['analyse_ia'] ?? null) ? $data['analyse_ia'] : null,
         ]);
 
         $this->recordCycleEvent($vetement, [
@@ -209,7 +245,42 @@ class VetementService
             $this->applyIntendedAction($vetement, $data['intended_action'], false);
         }
 
+        if (is_array($data['analyse_ia'] ?? null)) {
+            $this->memoriserAnalyse($vetement, $data['analyse_ia']);
+        }
+
         return $vetement->load('cycleEvents');
+    }
+
+    /**
+     * @param  array<string, mixed>  $analyse
+     */
+    public function attacherAnalyse(Vetement $vetement, array $analyse): Vetement
+    {
+        $vetement->analyse_ia = $analyse;
+        $vetement->save();
+        $this->memoriserAnalyse($vetement, $analyse);
+
+        return $vetement->fresh(['cycleEvents']) ?? $vetement;
+    }
+
+    /**
+     * @param  array<string, mixed>  $analyse
+     */
+    private function memoriserAnalyse(Vetement $vetement, array $analyse): void
+    {
+        if (empty($analyse['resume'])) {
+            return;
+        }
+
+        $this->recordCycleEvent($vetement, [
+            'step_key' => CycleVieEvent::STEP_ANALYSE_IA,
+            'step_order' => $vetement->cycleEvents()->count() + 1,
+            'title' => ResultatAnalyseVetement::libelleVerdict($analyse['verdict'] ?? null),
+            'description' => (string) $analyse['resume'],
+            'status_snapshot' => $vetement->status,
+            'occurred_at' => now(),
+        ]);
     }
 
     public function applyIntendedAction(Vetement $vetement, string $action, bool $replaceExisting = true): Vetement

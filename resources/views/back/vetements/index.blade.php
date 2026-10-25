@@ -58,6 +58,9 @@
                         <td>
                             <b>{{ $vetement->displayName() }}</b>
                             <span class="cell-sub">{{ $vetement->material ?? '' }} {{ $vetement->condition_label ? '· '.$vetement->condition_label : '' }}</span>
+                            @if($vetement->libelleVerdictAnalyse())
+                                <span class="cell-sub">IA · {{ $vetement->libelleVerdictAnalyse() }}</span>
+                            @endif
                         </td>
                         <td>{{ $vetement->owner?->name ?? $vetement->ownerShortName() }}</td>
                         <td><x-status-badge :tone="$vetement->intendedActionTone()">{{ $vetement->intendedActionLabel() }}</x-status-badge></td>
@@ -71,7 +74,7 @@
                                             @method('PATCH')
                                             <input type="hidden" name="status" value="{{ $cible }}">
                                             <button type="submit" class="btn btn-primary small">
-                                                {{ $cible === 'en_reparation' ? 'Démarrer la réparation' : 'Marquer réparé' }}
+                                                {{ $cible === 'en_reparation' ? 'Confirmer le rendez-vous' : 'Marquer réparé' }}
                                             </button>
                                         </form>
                                     @endforeach

@@ -3,6 +3,7 @@
 namespace App\Modules\Vetements\Models;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Vetements\Services\ResultatAnalyseVetement;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Jenssegers\Mongodb\Eloquent\Model;
@@ -44,6 +45,28 @@ class Vetement extends Model
     ];
 
     /** @var list<string> */
+    public const TYPES = [
+        'Veste',
+        'Manteau',
+        'Pantalon',
+        'Jean',
+        'Pull',
+        'Robe',
+        'Chemise',
+        'Jupe',
+        'T-shirt',
+        'Short',
+    ];
+
+    /** @var list<string> */
+    public const ETATS = [
+        'Excellent',
+        'Bon état',
+        'À réparer',
+        'Abîmé',
+    ];
+
+    /** @var list<string> */
     public const MATERIALS = [
         'Coton',
         'Denim',
@@ -73,9 +96,11 @@ class Vetement extends Model
         'image_url',
         'image_path',
         'intended_action',
+        'analyse_ia',
     ];
 
     protected $casts = [
+        'analyse_ia' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -167,6 +192,43 @@ class Vetement extends Model
         }
 
         return asset('icon.svg');
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function analyseIa(): ?array
+    {
+        return is_array($this->analyse_ia) ? $this->analyse_ia : null;
+    }
+
+    public function aDeuxiemeChance(): ?bool
+    {
+        $analyse = $this->analyseIa();
+        if (! $analyse || ! array_key_exists('deuxieme_chance', $analyse) || $analyse['deuxieme_chance'] === null) {
+            return null;
+        }
+
+        return (bool) $analyse['deuxieme_chance'];
+    }
+
+    public function libelleVerdictAnalyse(): ?string
+    {
+        $analyse = $this->analyseIa();
+        if (! $analyse) {
+            return null;
+        }
+
+        if (! empty($analyse['verdict_libelle'])) {
+            return (string) $analyse['verdict_libelle'];
+        }
+
+        return ResultatAnalyseVetement::libelleVerdict($analyse['verdict'] ?? null);
+    }
+
+    public function tonVerdictAnalyse(): string
+    {
+        return ResultatAnalyseVetement::tonVerdict($this->analyseIa()['verdict'] ?? null);
     }
 
     public function intendedActionLabel(): string

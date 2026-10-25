@@ -11,6 +11,8 @@ class CycleVieEvent extends Model
 
     public const STEP_ANALYSE = 'analyse';
 
+    public const STEP_ANALYSE_IA = 'analyse_ia';
+
     public const STEP_ACTION = 'action';
 
     public const STEP_TERMINE = 'termine';
@@ -49,6 +51,10 @@ class CycleVieEvent extends Model
 
         if ($this->step_key === self::STEP_ANALYSE) {
             return 'route';
+        }
+
+        if ($this->step_key === self::STEP_ANALYSE_IA) {
+            return 'sparkles';
         }
 
         if ($this->step_key === self::STEP_TERMINE) {

@@ -80,4 +80,6 @@
         @endforelse
     </div>
 </main>
+
+<x-clothing-chat :disponible="$chatDisponible" />
 @endsection

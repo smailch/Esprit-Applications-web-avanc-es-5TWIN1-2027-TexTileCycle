@@ -7,5 +7,20 @@ Route::middleware('citizen')->group(function () {
     Route::get('/mes-vetements', [VetementController::class, 'index'])->name('vetements');
     Route::get('/mon-historique', [VetementController::class, 'historique'])->name('historique');
     Route::post('/mes-vetements', [VetementController::class, 'store'])->name('vetements.store');
+    Route::post('/mes-vetements/analyse-photo', [VetementController::class, 'analyser'])
+        ->middleware('throttle:20,1')
+        ->name('vetements.analyser');
+    Route::post('/mes-vetements/chat', [VetementController::class, 'discuter'])
+        ->middleware('throttle:20,1')
+        ->name('vetements.chat');
+    Route::post('/mes-vetements/style', [VetementController::class, 'proposerStyle'])
+        ->middleware('throttle:6,1')
+        ->name('vetements.style');
+    Route::post('/mes-vetements/{vetement}/style', [VetementController::class, 'proposerStylePiece'])
+        ->middleware('throttle:6,1')
+        ->name('vetements.style.piece');
+    Route::post('/mes-vetements/{vetement}/analyse-photo', [VetementController::class, 'analyserPiece'])
+        ->middleware('throttle:20,1')
+        ->name('vetements.analyser.piece');
     Route::patch('/mes-vetements/{vetement}/action', [VetementController::class, 'updateAction'])->name('vetements.action');
 });

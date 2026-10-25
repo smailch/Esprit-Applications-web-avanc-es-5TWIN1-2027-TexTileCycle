@@ -3,25 +3,43 @@
 namespace App\Modules\Vetements\Http\Controllers\Front;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Vetements\Exceptions\AnalyseImageException;
+use App\Modules\Vetements\Exceptions\ChatVetementException;
+use App\Modules\Vetements\Http\Requests\AnalyserImageVetementRequest;
+use App\Modules\Vetements\Http\Requests\DiscuterVetementRequest;
+use App\Modules\Vetements\Exceptions\StyleVetementException;
+use App\Modules\Vetements\Http\Requests\ProposerStyleVetementRequest;
 use App\Modules\Vetements\Http\Requests\StoreVetementRequest;
+use App\Modules\Vetements\Services\PropositionStyleVetementService;
 use App\Modules\Vetements\Http\Requests\UpdateIntendedActionRequest;
 use App\Modules\Vetements\Models\Vetement;
+use App\Modules\Vetements\Services\AnalyseImageVetementService;
+use App\Modules\Vetements\Services\ChatVetementService;
 use App\Modules\Vetements\Services\VetementService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class VetementController extends Controller
 {
     public function __construct(
-        private VetementService $vetements
+        private VetementService $vetements,
+        private AnalyseImageVetementService $analyses,
+        private ChatVetementService $chat,
+        private PropositionStyleVetementService $styles
     ) {
     }
 
     public function index()
     {
         $vetements = $this->vetements->listActifsForOwner(auth()->user());
+        $analysePhotoDisponible = $this->analyses->estConfigure();
+        $chatDisponible = $this->chat->estConfigure();
+        $styleDisponible = $this->styles->estConfigure();
 
-        return view('front.vetements', compact('vetements'));
+        return view('front.vetements', compact('vetements', 'analysePhotoDisponible', 'chatDisponible', 'styleDisponible'));
     }
 
     public function historique(Request $request)
@@ -32,6 +50,7 @@ class VetementController extends Controller
         return view('front.historique', [
             'vetements' => $vetements,
             'filtre' => $filtre,
+            'chatDisponible' => $this->chat->estConfigure(),
             'filtres' => [
                 '' => 'Tous',
                 Vetement::STATUS_REPARE => 'Réparés',
@@ -46,15 +65,201 @@ class VetementController extends Controller
         $data = $request->validated();
         unset($data['photo']);
 
+        $info = null;
+
         if ($request->hasFile('photo')) {
             $data['image_path'] = $request->file('photo')->store('vetements', 'public');
+            [$analyse, $info] = $this->analysePhoto($request->file('photo'));
+            if ($analyse !== null) {
+                $data['analyse_ia'] = $analyse;
+            }
         }
 
         $vetement = $this->vetements->declare(auth()->user(), $data);
 
         $message = '« '.$vetement->displayName().' » a été déclaré — parcours '.$vetement->intendedActionLabel().'.';
+        if (! empty($data['analyse_ia']['resume'])) {
+            $message .= ' '.$data['analyse_ia']['resume'];
+        }
 
-        return $this->redirectApresParcours($vetement, $message);
+        return $this->redirectApresParcours($vetement, $message, $info);
+    }
+
+    public function analyser(AnalyserImageVetementRequest $request): JsonResponse
+    {
+        if (! $this->analyses->estConfigure()) {
+            return response()->json([
+                'disponible' => false,
+                'message' => 'L\'analyse photo n\'est pas activée sur cette installation.',
+            ], 503);
+        }
+
+        try {
+            $resultat = $this->analyses->analyser($request->file('photo'));
+        } catch (AnalyseImageException $exception) {
+            report($exception);
+
+            return response()->json([
+                'disponible' => false,
+                'message' => $exception->getMessage(),
+            ], 502);
+        }
+
+        return response()->json($resultat->toArray());
+    }
+
+    public function discuter(DiscuterVetementRequest $request): JsonResponse
+    {
+        if (! $this->chat->estConfigure()) {
+            return response()->json([
+                'disponible' => false,
+                'message' => 'Le conseiller textile n\'est pas activé sur cette installation.',
+            ], 503);
+        }
+
+        try {
+            $resultat = $this->chat->repondre(
+                $request->validated('message'),
+                $request->validated('historique') ?? [],
+                $this->vetements->contexteChat($request->user())
+            );
+        } catch (ChatVetementException $exception) {
+            report($exception);
+
+            return response()->json([
+                'disponible' => false,
+                'message' => $exception->getMessage(),
+            ], 502);
+        }
+
+        return response()->json($resultat);
+    }
+
+    public function proposerStyle(ProposerStyleVetementRequest $request): JsonResponse
+    {
+        return $this->reponseStyle($request->file('photo'));
+    }
+
+    public function proposerStylePiece(string $vetement): JsonResponse
+    {
+        $model = $this->vetements->findOwnedByUser($vetement, auth()->user());
+
+        if (! $model) {
+            abort(404);
+        }
+
+        if (empty($model->image_path)) {
+            return response()->json([
+                'est_vetement' => false,
+                'message' => 'Ajoutez une photo pour proposer un nouveau style.',
+            ], 422);
+        }
+
+        $absolu = Storage::disk('public')->path($model->image_path);
+        if (! is_file($absolu)) {
+            return response()->json([
+                'est_vetement' => false,
+                'message' => 'La photo de cette pièce est introuvable.',
+            ], 422);
+        }
+
+        $mime = mime_content_type($absolu);
+
+        return $this->reponseStyle(new UploadedFile(
+            $absolu,
+            basename($absolu),
+            is_string($mime) ? $mime : null,
+            UPLOAD_ERR_OK,
+            true
+        ));
+    }
+
+    private function reponseStyle(UploadedFile $photo): JsonResponse
+    {
+        if (! $this->styles->estConfigure()) {
+            return response()->json([
+                'disponible' => false,
+                'message' => 'Le nouveau style n\'est pas activé sur cette installation.',
+            ], 503);
+        }
+
+        try {
+            $resultat = $this->styles->proposer($photo);
+        } catch (StyleVetementException $exception) {
+            report($exception);
+
+            return response()->json([
+                'disponible' => false,
+                'message' => $exception->getMessage(),
+            ], 502);
+        }
+
+        if (empty($resultat['est_vetement'])) {
+            return response()->json($resultat, 422);
+        }
+
+        return response()->json($resultat);
+    }
+
+    public function analyserPiece(string $vetement): RedirectResponse
+    {
+        $model = $this->vetements->findOwnedByUser($vetement, auth()->user());
+
+        if (! $model) {
+            abort(404);
+        }
+
+        if (! $this->analyses->estConfigure()) {
+            return back()->with('error', 'L\'analyse photo n\'est pas activée sur cette installation.');
+        }
+
+        if (empty($model->image_path)) {
+            return back()->with('error', 'Ajoutez une photo pour analyser l\'état de cette pièce.');
+        }
+
+        $absolu = Storage::disk('public')->path($model->image_path);
+        if (! is_file($absolu)) {
+            return back()->with('error', 'La photo de cette pièce est introuvable.');
+        }
+
+        $mime = mime_content_type($absolu);
+
+        try {
+            $fichier = new UploadedFile(
+                $absolu,
+                basename($absolu),
+                is_string($mime) ? $mime : null,
+                UPLOAD_ERR_OK,
+                true
+            );
+            $resultat = $this->analyses->analyser($fichier);
+        } catch (AnalyseImageException $exception) {
+            report($exception);
+
+            return back()->with('error', $exception->getMessage());
+        }
+
+        $this->vetements->attacherAnalyse($model, $resultat->toArray());
+
+        return back()->with('success', $resultat->toArray()['resume'] ?? 'Analyse enregistrée.');
+    }
+
+    /**
+     * @return array{0: array<string, mixed>|null, 1: string|null}
+     */
+    private function analysePhoto(UploadedFile $photo): array
+    {
+        if (! $this->analyses->estConfigure()) {
+            return [null, null];
+        }
+
+        try {
+            return [$this->analyses->analyser($photo)->toArray(), null];
+        } catch (AnalyseImageException $exception) {
+            report($exception);
+
+            return [null, 'La photo est enregistrée, mais l\'analyse de l\'état n\'a pas abouti. Vous pouvez la relancer depuis la fiche.'];
+        }
     }
 
     public function updateAction(UpdateIntendedActionRequest $request, string $vetement): RedirectResponse
@@ -70,16 +275,18 @@ class VetementController extends Controller
         return $this->redirectApresParcours($model, 'Parcours mis à jour : '.$model->intendedActionLabel().'.');
     }
 
-    private function redirectApresParcours(Vetement $vetement, string $message): RedirectResponse
+    private function redirectApresParcours(Vetement $vetement, string $message, ?string $info = null): RedirectResponse
     {
         if ($vetement->intended_action === Vetement::ACTION_REPARATION) {
-            return redirect()
+            $redirect = redirect()
                 ->route('front.ateliers', ['vetement_id' => (string) $vetement->getKey()])
                 ->with('success', $message.' Choisissez un atelier : le rendez-vous sera prérempli.');
+        } else {
+            $redirect = redirect()
+                ->route('front.vetements')
+                ->with('success', $message);
         }
 
-        return redirect()
-            ->route('front.vetements')
-            ->with('success', $message);
+        return $info ? $redirect->with('info', $info) : $redirect;
     }
 }

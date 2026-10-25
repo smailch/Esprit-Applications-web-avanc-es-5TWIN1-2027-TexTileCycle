@@ -30,4 +30,19 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'vision' => [
+        'provider' => env('VISION_PROVIDER', 'gemini'),
+        'gemini_key' => env('GEMINI_API_KEY'),
+        'gemini_model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
+        'openai_key' => env('OPENAI_API_KEY'),
+        'openai_model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+    ],
+
+    'atlas' => [
+        'project_id' => env('ATLAS_PROJECT_ID'),
+        'public_key' => env('ATLAS_PUBLIC_KEY'),
+        'private_key' => env('ATLAS_PRIVATE_KEY'),
+        'sync' => env('ATLAS_IP_SYNC', env('APP_ENV') === 'local'),
+    ],
+
 ];
