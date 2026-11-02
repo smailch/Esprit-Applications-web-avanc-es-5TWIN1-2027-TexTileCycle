@@ -38,6 +38,13 @@ return [
         'openai_model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
     ],
 
+    // IA du module 5 (modération des messages, triage des signalements).
+    // Clé dédiée si renseignée, sinon la clé Gemini partagée ; sans clé, seules les règles locales s'appliquent.
+    'admin_ia' => [
+        'gemini_key' => env('GEMINI_ADMIN_API_KEY') ?: env('GEMINI_API_KEY'),
+        'actif' => env('ADMIN_IA_ACTIVE', true),
+    ],
+
     // Clé Gemini dédiée au matching et au pré-contrôle des dons (quota séparé).
     // Vide : les fonctions IA du module (matching, pré-contrôle, besoins) sont désactivées.
     'dons' => [
