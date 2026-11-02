@@ -34,6 +34,7 @@ class Kernel extends HttpKernel
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
             // \Illuminate\Session\Middleware\AuthenticateSession::class,
+            \App\Modules\Auth\Http\Middleware\EnsureAccountIsActive::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
@@ -67,5 +68,7 @@ class Kernel extends HttpKernel
         'backoffice' => \App\Modules\Auth\Http\Middleware\EnsureBackOfficeAccess::class,
         'backoffice.route' => \App\Modules\Auth\Http\Middleware\EnsureBackOfficeRoute::class,
         'citizen' => \App\Modules\Auth\Http\Middleware\EnsureFrontCitizenArea::class,
+        'atelier.fiche' => \App\Modules\Ateliers\Http\Middleware\EnsureAtelierHasCreatedFiche::class,
+        'association.fiche' => \App\Modules\Associations\Http\Middleware\EnsureAssociationHasCreatedFiche::class,
     ];
 }

@@ -6,17 +6,25 @@ use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Rules\HorairesRule;
 use App\Modules\Ateliers\Services\AtelierService;
 use App\Modules\Ateliers\Support\HorairesFormulaire;
+use App\Modules\Ateliers\Support\Saisie;
 use Closure;
 
 trait ValidatesAtelierFields
 {
     /**
      * L'éditeur du back office envoie horaires[jour][ferme|plages] : on le ramène au format de HorairesRule.
+     * Latitude et longitude sont des champs texte : « 36,8065 » est accepté et ramené à « 36.8065 ».
      */
     protected function prepareForValidation(): void
     {
         if ($this->has('horaires')) {
             $this->merge(['horaires' => HorairesFormulaire::depuisFormulaire($this->input('horaires'))]);
+        }
+
+        foreach (['latitude', 'longitude'] as $champ) {
+            if ($this->has($champ)) {
+                $this->merge([$champ => Saisie::decimal($this->input($champ))]);
+            }
         }
     }
 

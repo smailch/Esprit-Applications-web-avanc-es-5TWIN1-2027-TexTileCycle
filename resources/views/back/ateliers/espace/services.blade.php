@@ -8,6 +8,7 @@
 
 @push('scripts')
     <script src="{{ asset('js/ateliers-back.js') }}" defer></script>
+    <script src="{{ asset('js/ateliers-precognition.js') }}" defer></script>
 @endpush
 
 @php
@@ -141,13 +142,13 @@
             <input type="hidden" name="_modal" value="{{ $modale['mode'] }}" data-service-mode>
             <input type="hidden" name="_service" value="{{ $serviceModale?->getKey() }}" data-service-id>
 
-            @include('back.ateliers.partials.field', ['id' => 'service-nom', 'name' => 'nom', 'label' => 'Nom du service', 'value' => $valeur('nom'), 'required' => true, 'attrs' => ['maxlength' => 120, 'placeholder' => 'Ex. Raccourcir un ourlet']])
+            @include('back.ateliers.partials.field', ['id' => 'service-nom', 'name' => 'nom', 'label' => 'Nom du service', 'value' => $valeur('nom'), 'required' => true, 'attrs' => ['placeholder' => 'Ex. Raccourcir un ourlet']])
 
-            @include('back.ateliers.partials.field', ['id' => 'service-description', 'name' => 'description', 'label' => 'Description', 'type' => 'textarea', 'rows' => 3, 'value' => $valeur('description'), 'hint' => 'Facultatif, 1000 caractères maximum.', 'attrs' => ['maxlength' => 1000]])
+            @include('back.ateliers.partials.field', ['id' => 'service-description', 'name' => 'description', 'label' => 'Description', 'type' => 'textarea', 'rows' => 3, 'value' => $valeur('description'), 'hint' => 'Facultatif, 1000 caractères maximum.'])
 
             <div class="ab-field-row">
-                @include('back.ateliers.partials.field', ['id' => 'service-prix', 'name' => 'prix_estime', 'label' => 'Prix estimé (TND)', 'type' => 'number', 'value' => $valeur('prix_estime'), 'required' => true, 'hint' => 'En dinars, 0 ou plus.', 'attrs' => ['min' => 0, 'max' => 100000, 'step' => '0.5', 'inputmode' => 'decimal']])
-                @include('back.ateliers.partials.field', ['id' => 'service-duree', 'name' => 'duree_estimee', 'label' => 'Durée estimée (min)', 'type' => 'number', 'value' => $valeur('duree_estimee'), 'required' => true, 'hint' => 'Entre 5 et 480 minutes.', 'attrs' => ['min' => 5, 'max' => 480, 'step' => 1, 'inputmode' => 'numeric']])
+                @include('back.ateliers.partials.field', ['id' => 'service-prix', 'name' => 'prix_estime', 'label' => 'Prix estimé (TND)', 'value' => $valeur('prix_estime'), 'required' => true, 'hint' => 'En dinars, 0 ou plus.', 'attrs' => ['inputmode' => 'decimal', 'autocomplete' => 'off']])
+                @include('back.ateliers.partials.field', ['id' => 'service-duree', 'name' => 'duree_estimee', 'label' => 'Durée estimée (min)', 'value' => $valeur('duree_estimee'), 'required' => true, 'hint' => 'Entre 5 et 480 minutes.', 'attrs' => ['inputmode' => 'numeric', 'autocomplete' => 'off']])
             </div>
 
             <div class="modal-actions">

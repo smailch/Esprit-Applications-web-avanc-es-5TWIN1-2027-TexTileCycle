@@ -25,6 +25,7 @@ class HorairesFormulaire
     /**
      * Saisie du formulaire -> format attendu par HorairesRule. Les jours déjà au format
      * stockage et les clés inconnues sont laissés tels quels pour que la règle les signale.
+     * Les heures saisies « 9:00 » ou « 9h00 » sont ramenées à « 09:00 ».
      */
     public static function depuisFormulaire(mixed $saisie): mixed
     {
@@ -52,8 +53,8 @@ class HorairesFormulaire
                     continue;
                 }
 
-                $debut = trim((string) ($plage['debut'] ?? ''));
-                $fin = trim((string) ($plage['fin'] ?? ''));
+                $debut = Saisie::heure(trim((string) ($plage['debut'] ?? '')));
+                $fin = Saisie::heure(trim((string) ($plage['fin'] ?? '')));
 
                 if ($debut === '' && $fin === '') {
                     continue;

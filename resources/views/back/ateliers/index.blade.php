@@ -21,6 +21,28 @@
 <div class="ab-page">
     @include('back.ateliers.partials.flash')
 
+    {{-- Changement de statut mis en attente : l'atelier a des rendez-vous en cours (voir AtelierController::updateStatut). --}}
+    @if (is_array(session('confirmation_statut')))
+        @php $confirmation = session('confirmation_statut'); @endphp
+        <div class="ab-alert ab-alert--warning" role="alert" data-confirmation-statut>
+            <i data-lucide="alert-triangle" aria-hidden="true"></i>
+            <div>
+                <p><strong>« {{ $confirmation['nom'] }} » a {{ $confirmation['nb'] }} rendez-vous en cours (en attente ou confirmés).</strong></p>
+                <p>Son compte sera désactivé : ces rendez-vous seront annulés et les pièces rendues à leurs propriétaires.</p>
+                <div class="ab-alert__actions">
+                    <form method="post" action="{{ route('back.ateliers.statut', ['id' => $confirmation['id']]) }}">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="statut" value="{{ $confirmation['statut'] }}">
+                        <input type="hidden" name="annuler_rdv" value="1">
+                        <button type="submit" class="btn btn-primary small">{{ $confirmation['action'] }} et annuler les rendez-vous</button>
+                    </form>
+                    <a href="{{ route('back.ateliers') }}" class="btn btn-secondary small">Ne rien changer</a>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="stats-grid four ab-stats">
         @foreach ($cartes as $carte)
             <a href="{{ route('back.ateliers', array_filter(['statut' => $carte['statut'], 'q' => $filters['q'] ?? null])) }}"
@@ -39,10 +61,10 @@
 
     <div class="module-toolbar ab-toolbar">
         <form method="get" action="{{ route('back.ateliers') }}" class="ab-filters" role="search" aria-label="Filtrer les ateliers">
-            <div class="search-box compact">
+            <div @class(['search-box', 'compact', 'has-error' => $errors->has('q')])>
                 <i data-lucide="search" aria-hidden="true"></i>
                 <label for="ab-q" class="sr-only">Rechercher par nom, ville, spécialité ou adresse</label>
-                <input id="ab-q" type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="Nom, ville, spécialité…">
+                <input id="ab-q" type="search" name="q" value="{{ old('q', $filters['q'] ?? '') }}" placeholder="Nom, ville, spécialité…" @error('q') aria-invalid="true" @enderror>
             </div>
             <label for="ab-statut" class="sr-only">Filtrer par statut</label>
             <select id="ab-statut" name="statut" class="ab-select">
@@ -56,7 +78,10 @@
                 <a href="{{ route('back.ateliers') }}" class="link-button ab-reset"><i data-lucide="x" aria-hidden="true"></i> Effacer les filtres</a>
             @endif
         </form>
-        <a href="{{ route('back.ateliers.create') }}" class="btn btn-primary"><i data-lucide="plus" aria-hidden="true"></i> Nouvel atelier</a>
+        <div class="ab-toolbar__actions">
+            <a href="{{ route('back.ateliers.passeports.admin') }}" class="btn btn-secondary"><i data-lucide="qr-code" aria-hidden="true"></i> Passeports</a>
+            <a href="{{ route('back.ateliers.create') }}" class="btn btn-primary"><i data-lucide="plus" aria-hidden="true"></i> Nouvel atelier</a>
+        </div>
     </div>
 
     @if ($ateliers->isEmpty())

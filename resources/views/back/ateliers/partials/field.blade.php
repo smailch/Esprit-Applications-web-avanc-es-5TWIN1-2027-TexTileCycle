@@ -13,16 +13,17 @@
         @if ($required)<span class="ab-required" aria-hidden="true">*</span>@endif
     </label>
 
+    {{-- Pas d'attribut de validation HTML : les contrôles de saisie sont faits en PHP (FormRequests du module). --}}
     @if ($type === 'textarea')
         <textarea id="{{ $id }}" name="{{ $name }}" rows="{{ $rows ?? 4 }}"
-            @if ($required) required @endif
+            @if ($required) aria-required="true" @endif
             @if ($hasError) aria-invalid="true" @endif
             @if ($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
             @foreach ($attrs ?? [] as $attr => $attrValue) {{ $attr }}="{{ $attrValue }}" @endforeach
         >{{ $value }}</textarea>
     @else
         <input id="{{ $id }}" type="{{ $type }}" name="{{ $name }}" value="{{ $value }}"
-            @if ($required) required @endif
+            @if ($required) aria-required="true" @endif
             @if ($hasError) aria-invalid="true" @endif
             @if ($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
             @foreach ($attrs ?? [] as $attr => $attrValue) {{ $attr }}="{{ $attrValue }}" @endforeach

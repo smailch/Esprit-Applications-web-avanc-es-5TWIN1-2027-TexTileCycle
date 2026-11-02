@@ -3,107 +3,96 @@
 namespace App\Modules\RendezVous\Http\Controllers\Back;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Services\AtelierService;
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Http\Controllers\Concerns\RendersBackOffice;
-use App\Modules\RendezVous\Http\Requests\UpdateStatutRendezVousRequest;
 use App\Modules\RendezVous\Models\RendezVous;
 use App\Modules\RendezVous\Services\RendezVousService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
-/**
- * Rôle atelier : uniquement les RDV de son atelier, retrouvé par AtelierService::findOwnedByUser
- * (jamais par un identifiant de la requête). Admin : tous les RDV, filtrables par atelier.
- */
 class RendezVousController extends Controller
 {
     use RendersBackOffice;
 
-    private const PER_PAGE = 15;
-
     public function __construct(
-        private AtelierService $ateliers,
         private RendezVousService $rendezVous,
+        private AtelierService $ateliers
     ) {
     }
 
     public function index(Request $request)
     {
         $user = $request->user();
-        $estAdmin = $user->isAdmin();
-        $atelier = null;
+        $statut = $request->query('statut');
+        $atelier = $this->atelierConnecte($user);
 
-        if (! $estAdmin) {
-            abort_unless($user->role === User::ROLE_ATELIER, 403, 'Les rendez-vous sont réservés aux comptes atelier.');
-
-            $atelier = $this->ateliers->findOwnedByUser((string) $user->getKey());
-
-            if (! $atelier) {
-                return $this->backView('back.ateliers.espace.vide', ['pageTitle' => 'Rendez-vous']);
-            }
+        if ($atelier) {
+            $items = $this->rendezVous->listerPourAtelier((string) $atelier->getKey(), $statut);
+            $counts = $this->rendezVous->countsPourAtelier((string) $atelier->getKey());
+        } else {
+            abort_unless($user?->isAdmin(), 403);
+            $items = $this->rendezVous->listerPourAdmin($statut);
+            $counts = $this->countsAdmin($items);
         }
 
-        $this->authorize('viewAny', RendezVous::class);
-
-        $filters = $this->filters($request, $estAdmin);
-        $atelierId = $atelier ? (string) $atelier->getKey() : ($filters['atelier'] ?? null);
-
         return $this->backView('back.rendez-vous.index', [
-            'pageTitle' => 'Rendez-vous',
-            'rdvs' => $this->rendezVous->lister($atelierId, $filters, self::PER_PAGE),
-            'stats' => $this->rendezVous->statistiques($atelierId),
-            'filters' => $filters,
+            'pageTitle' => $atelier ? 'Mes rendez-vous' : 'Rendez-vous',
             'atelier' => $atelier,
-            'estAdmin' => $estAdmin,
-            'ateliersFiltre' => $estAdmin ? $this->rendezVous->ateliersPourFiltre() : collect(),
-            'aujourdhui' => Atelier::maintenant()->format('Y-m-d'),
+            'rendezVous' => $items,
+            'statut' => $statut,
+            'counts' => $counts,
+            'statuts' => RendezVous::STATUTS,
         ]);
     }
 
-    public function updateStatut(UpdateStatutRendezVousRequest $request, string $id)
+    public function updateStatut(Request $request, string $id)
     {
+        $data = $request->validate([
+            'statut' => ['required', Rule::in(RendezVous::STATUTS)],
+        ]);
+
         $user = $request->user();
-        $atelier = null;
+        $atelier = $this->atelierConnecte($user);
 
-        if ($user->isAdmin()) {
-            $rdv = $this->rendezVous->findOrFail($id);
+        if ($atelier) {
+            $rdv = $this->rendezVous->changerStatutPourAtelier($id, (string) $atelier->getKey(), $data['statut']);
         } else {
-            abort_unless($user->role === User::ROLE_ATELIER, 403, 'Les rendez-vous sont réservés aux comptes atelier.');
-
-            $atelier = $this->ateliers->findOwnedByUser((string) $user->getKey());
-            abort_unless($atelier !== null, 404);
-
-            $rdv = $this->rendezVous->findPourAtelier($atelier, $id);
+            abort_unless($user?->isAdmin(), 403);
+            $rdv = $this->rendezVous->changerStatutPourAdmin($id, $data['statut']);
         }
 
-        $this->authorize('changerStatut', $rdv);
-
-        $data = $request->validated();
-        $rdv = $this->rendezVous->changerStatut($rdv, $data['statut'], $data['motif'] ?? null, $atelier);
-
-        $quand = mb_strtolower($rdv->dateFormatee()).' à '.$rdv->heure;
         $message = match ($rdv->statut) {
-            RendezVous::STATUT_CONFIRME => "Le rendez-vous du {$quand} est confirmé.",
-            RendezVous::STATUT_REFUSE => "Le rendez-vous du {$quand} a été refusé.",
-            RendezVous::STATUT_TERMINE => "Le rendez-vous du {$quand} est marqué comme terminé.",
-            default => "Le rendez-vous du {$quand} a été annulé.",
+            RendezVous::STATUT_CONFIRME => 'Rendez-vous confirmé : la pièce passe en réparation.',
+            RendezVous::STATUT_TERMINE => 'Rendez-vous terminé : la pièce est marquée réparée.',
+            RendezVous::STATUT_ANNULE => 'Rendez-vous annulé.',
+            default => 'Statut du rendez-vous mis à jour.',
         };
 
-        return redirect()->back(302, [], route('back.rdv'))->with('success', $message);
+        return back()->with('success', $message);
+    }
+
+    private function atelierConnecte(?User $user): ?\App\Modules\Ateliers\Models\Atelier
+    {
+        if (! $user || $user->role !== User::ROLE_ATELIER) {
+            return null;
+        }
+
+        return $this->ateliers->findOwnedByUser((string) $user->getKey());
     }
 
     /**
-     * @return array{statut?: string, periode?: string, atelier?: string}
+     * @param  \Illuminate\Support\Collection<int, RendezVous>  $items
+     * @return array<string, int>
      */
-    private function filters(Request $request, bool $estAdmin): array
+    private function countsAdmin($items): array
     {
-        $atelier = $request->query('atelier');
+        $counts = array_fill_keys(RendezVous::STATUTS, 0);
+        foreach ($items as $rdv) {
+            $counts[$rdv->statut] = ($counts[$rdv->statut] ?? 0) + 1;
+        }
+        $counts['total'] = $items->count();
 
-        return array_filter([
-            'statut' => in_array($request->query('statut'), RendezVous::STATUTS, true) ? $request->query('statut') : null,
-            'periode' => in_array($request->query('periode'), RendezVousService::PERIODES, true) ? $request->query('periode') : null,
-            'atelier' => $estAdmin && is_string($atelier) && preg_match(RendezVousService::OBJECT_ID, $atelier) ? $atelier : null,
-        ], fn ($v) => $v !== null);
+        return $counts;
     }
 }

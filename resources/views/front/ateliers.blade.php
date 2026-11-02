@@ -1,34 +1,68 @@
-@extends('layouts.front')
+@extends('layouts.trame')
 
 @section('title', 'Ateliers de réparation')
 
 @push('styles')
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="{{ asset('css/ateliers.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ateliers-trame.css') }}">
 @endpush
 
+@section('bandeau')
+    <nav class="tr-ariane" aria-label="Fil d'Ariane">
+        <ol>
+            <li><a href="{{ route('front.home') }}">Accueil</a></li>
+            <li><span aria-current="page">Ateliers</span></li>
+        </ol>
+    </nav>
+    <div class="tr-bandeau__grille">
+        <div class="tr-bandeau__principal">
+            <h1 id="ateliers-titre">Ateliers près de chez vous</h1>
+            <p class="tr-bandeau__intro">Réparer, retoucher, transformer : des ateliers partenaires pour prolonger la vie de vos vêtements.</p>
+        </div>
+        <div class="tr-bandeau__cote">
+            <a href="{{ route('front.ateliers.diagnostic') }}" class="tr-pilule est-claire">
+                <i data-lucide="camera" aria-hidden="true"></i> Diagnostiquer mon vêtement par photo
+            </a>
+            <a href="{{ route('front.ateliers.assistant') }}" class="tr-pilule">
+                <i data-lucide="message-circle-question" aria-hidden="true"></i> Poser une question à l'assistant
+            </a>
+        </div>
+    </div>
+@endsection
+
 @section('content')
+{{-- Les zones data-swap restent dans [data-ateliers-page] : ateliers-map.js les remplace à chaque recherche. --}}
 <main class="ateliers-page" data-ateliers-page>
-    <section class="ateliers-hero" aria-labelledby="ateliers-titre">
+    <section class="ateliers-hero" aria-label="Rechercher un atelier">
         <div class="container">
-            <div class="ateliers-hero__intro">
-                <p class="kicker">Le réseau local</p>
-                <h1 id="ateliers-titre">Ateliers près de <em>chez vous</em></h1>
-                <p class="ateliers-hero__subtitle" data-swap="total" aria-live="polite">
-                    @if ($total === 0)
-                        Aucun atelier ne correspond à votre recherche pour le moment.
-                    @else
-                        <strong>{{ $total }}</strong> {{ $total > 1 ? 'ateliers partenaires' : 'atelier partenaire' }} pour réparer, retoucher et transformer vos vêtements.
-                    @endif
-                </p>
-            </div>
+            <p class="ateliers-hero__subtitle" data-swap="total" aria-live="polite">
+                @if ($total === 0)
+                    Aucun atelier ne correspond à votre recherche pour le moment.
+                @else
+                    <strong>{{ $total }}</strong> {{ $total > 1 ? 'ateliers partenaires' : 'atelier partenaire' }} pour réparer, retoucher et transformer vos vêtements.
+                @endif
+            </p>
+
+            @if ($vetementPourRdv ?? null)
+                <div class="ai-banner">
+                    <i data-lucide="shirt"></i>
+                    <div>
+                        <strong>Réparation de « {{ $vetementPourRdv->displayName() }} »</strong>
+                        <p>Choisissez un atelier : le formulaire de rendez-vous sera déjà rempli avec ce vêtement et l'atelier.</p>
+                    </div>
+                </div>
+            @endif
 
             <form class="ateliers-search" method="get" action="{{ route('front.ateliers') }}" role="search" aria-label="Rechercher un atelier" data-filters-form>
+                @if (! empty($listQuery['vetement_id']))
+                    <input type="hidden" name="vetement_id" value="{{ $listQuery['vetement_id'] }}">
+                @endif
                 <div class="ateliers-search__main">
                     <label for="atelier-q" class="sr-only">Rechercher par nom d'atelier, ville, spécialité ou service</label>
                     <div class="ateliers-search__field">
                         <i data-lucide="search" aria-hidden="true"></i>
-                        <input id="atelier-q" type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="Retouche denim, ourlet, La Marsa…" autocomplete="off">
+                        <input id="atelier-q" type="search" name="q" value="{{ old('q', $filters['q'] ?? '') }}" placeholder="Retouche denim, ourlet, La Marsa…" autocomplete="off">
                     </div>
                     <button type="submit" class="btn btn-primary">Rechercher</button>
                 </div>
@@ -92,7 +126,7 @@
                             <i data-lucide="{{ $hasPosition ? 'locate-fixed' : 'locate' }}" aria-hidden="true"></i>
                             <span data-locate-label>{{ $hasPosition ? 'Position utilisée' : 'Me localiser' }}</span>
                         </button>
-                        <a href="{{ route('front.ateliers') }}" class="btn btn-secondary reset-btn" data-ajax-link>
+                        <a href="{{ route('front.ateliers', array_filter(['vetement_id' => $listQuery['vetement_id'] ?? null])) }}" class="btn btn-secondary reset-btn" data-ajax-link>
                             <i data-lucide="rotate-ccw" aria-hidden="true"></i> Réinitialiser
                         </a>
                     </div>
@@ -100,6 +134,20 @@
 
                 <p class="ateliers-filters__status" data-locate-status role="status" aria-live="polite"></p>
             </form>
+
+            {{-- Erreurs de SearchAteliersRequest. Zone remplacée à chaque recherche : elle disparaît dès qu'une recherche est valide. --}}
+            <div data-swap="erreurs">
+                @if ($errors->any())
+                    <div class="ateliers-search__errors" role="alert">
+                        <i data-lucide="alert-circle" aria-hidden="true"></i>
+                        <ul>
+                            @foreach ($errors->all() as $message)
+                                <li>{{ $message }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </div>
 
             <div data-swap="chips">
                 @if (count($activeFilters) > 0)
@@ -128,7 +176,7 @@
         </div>
 
         <div class="ateliers-layout" data-view="list" data-layout>
-            <section id="ateliers-liste" class="ateliers-results" aria-label="Liste des ateliers" data-swap="results">
+            <section id="ateliers-liste" class="ateliers-results tr-fil" aria-label="Liste des ateliers" data-swap="results">
                 @forelse ($ateliers as $atelier)
                     @include('front.partials.atelier-card', ['atelier' => $atelier, 'listQuery' => $listQuery])
                 @empty
@@ -136,7 +184,7 @@
                         <div class="ateliers-empty__icon" aria-hidden="true"><i data-lucide="search-x"></i></div>
                         <h2>Aucun atelier trouvé</h2>
                         <p>Essayez un autre mot-clé, élargissez le rayon ou retirez un filtre.</p>
-                        <a href="{{ route('front.ateliers') }}" class="btn btn-primary" data-ajax-link>
+                        <a href="{{ route('front.ateliers', array_filter(['vetement_id' => $listQuery['vetement_id'] ?? null])) }}" class="btn btn-primary" data-ajax-link>
                             <i data-lucide="rotate-ccw" aria-hidden="true"></i> Réinitialiser les filtres
                         </a>
                     </div>
@@ -145,7 +193,7 @@
                 {{ $ateliers->links('vendor.pagination.textilecycle') }}
             </section>
 
-            <aside id="ateliers-carte" class="ateliers-map-panel" aria-label="Carte des ateliers">
+            <aside id="ateliers-carte" class="ateliers-map-panel tr-fil" aria-label="Carte des ateliers">
                 <x-atelier-map
                     :markers="$markers"
                     mode="list"

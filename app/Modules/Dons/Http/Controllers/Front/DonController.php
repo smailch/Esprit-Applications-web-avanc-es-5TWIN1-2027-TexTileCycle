@@ -5,11 +5,21 @@ namespace App\Modules\Dons\Http\Controllers\Front;
 use App\Http\Controllers\Controller;
 use App\Modules\Associations\Models\Association;
 use App\Modules\Dons\Models\Don;
+use App\Modules\Dons\Services\MatchingDonService;
+use App\Modules\Dons\Services\PreControleDonService;
 use App\Modules\Vetements\Models\Vetement;
+use App\Modules\Vetements\Services\VetementService;
 use Illuminate\Http\Request;
 
 class DonController extends Controller
 {
+    public function __construct(
+        private VetementService $vetements,
+        private MatchingDonService $matching,
+        private PreControleDonService $preControle
+    ) {
+    }
+
     /** Page de proposition de don : liste les associations + vêtements du citoyen. */
     public function index(Request $request)
     {
@@ -38,6 +48,35 @@ class DonController extends Controller
         ]);
     }
 
+    /** Top 3 des associations les plus adaptées à un vêtement du citoyen (JSON). */
+    public function matching(string $vetementId)
+    {
+        $vetement = Vetement::where('_id', $vetementId)
+            ->where('user_id', auth()->user()->_id)
+            ->firstOrFail();
+
+        $associations = Association::where('statut', Association::STATUT_ACTIF)->get();
+
+        return response()->json([
+            'classement' => $this->matching->classer($vetement, $associations),
+            'top' => $this->matching->topTrois($vetement, $associations),
+        ]);
+    }
+
+    /** Pré-contrôle d'un don avant l'envoi (JSON, informatif : ne bloque jamais). */
+    public function preControle(string $vetementId, string $associationId)
+    {
+        $vetement = Vetement::where('_id', $vetementId)
+            ->where('user_id', auth()->user()->_id)
+            ->firstOrFail();
+
+        $associations = Association::where('statut', Association::STATUT_ACTIF)->get();
+        $association = $associations->firstWhere('_id', $associationId);
+        abort_if($association === null, 404);
+
+        return response()->json($this->preControle->verifier($vetement, $association, $associations));
+    }
+
     /** Soumettre une proposition de don. */
     public function store(Request $request)
     {
@@ -54,8 +93,7 @@ class DonController extends Controller
             ->where('user_id', $user->_id)
             ->firstOrFail();
 
-        // Vérifier que l'association existe et est active
-        Association::where('_id', $data['association_id'])
+        $association = Association::where('_id', $data['association_id'])
             ->where('statut', Association::STATUT_ACTIF)
             ->firstOrFail();
 
@@ -76,8 +114,7 @@ class DonController extends Controller
             'statut'         => Don::STATUT_EN_ATTENTE,
         ]);
 
-        // Mettre le vêtement en statut "donné" si accepté (pour l'instant juste marqué)
-        $vetement->update(['intended_action' => Vetement::ACTION_DON]);
+        $this->vetements->enregistrerPropositionDon($vetement, $association->nom);
 
         return back()->with('success', 'Votre proposition de don a été envoyée avec succès !');
     }

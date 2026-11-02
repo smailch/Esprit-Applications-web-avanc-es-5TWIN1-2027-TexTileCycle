@@ -2,6 +2,7 @@
 
 namespace App\Modules\Ateliers\Http\Requests\Concerns;
 
+use App\Modules\Ateliers\Support\Saisie;
 use App\Modules\Auth\Models\User;
 
 /**
@@ -12,6 +13,16 @@ trait ValidatesServiceFields
     public function authorize(): bool
     {
         return in_array($this->user()?->role, [User::ROLE_ADMIN, User::ROLE_ATELIER], true);
+    }
+
+    /**
+     * Le prix est un champ texte : « 12,5 » est accepté et ramené à « 12.5 ».
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('prix_estime')) {
+            $this->merge(['prix_estime' => Saisie::decimal($this->input('prix_estime'))]);
+        }
     }
 
     public function rules(): array

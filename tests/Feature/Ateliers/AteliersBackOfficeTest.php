@@ -282,25 +282,119 @@ class AteliersBackOfficeTest extends TestCase
         $suspendu = $this->atelier(Atelier::STATUT_SUSPENDU);
         $service = $this->mockService();
         $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(0);
+        $service->shouldNotReceive('annulerRendezVousEnCours');
         $service->shouldReceive('changerStatut')->once()->with(self::ID_ATELIER, Atelier::STATUT_SUSPENDU)->andReturn($suspendu);
 
         $this->actingAs($this->user(User::ROLE_ADMIN))
             ->from('/admin/ateliers?page=2')
             ->patch('/admin/ateliers/'.self::ID_ATELIER.'/statut', ['statut' => Atelier::STATUT_SUSPENDU])
             ->assertRedirect('/admin/ateliers?page=2')
+            ->assertSessionHas('success', '« Couture <script>alert(1)</script> Plus » est suspendu : il n\'apparaît plus sur le site.');
+    }
+
+    public function test_suspendre_un_atelier_avec_des_rendez_vous_demande_confirmation(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(3);
+        $service->shouldNotReceive('annulerRendezVousEnCours');
+        $service->shouldNotReceive('changerStatut');
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->from('/admin/ateliers')
+            ->patch('/admin/ateliers/'.self::ID_ATELIER.'/statut', ['statut' => Atelier::STATUT_SUSPENDU])
+            ->assertRedirect('/admin/ateliers')
+            ->assertSessionMissing('success')
+            ->assertSessionHas('confirmation_statut', [
+                'id' => self::ID_ATELIER,
+                'nom' => 'Couture <script>alert(1)</script> Plus',
+                'statut' => Atelier::STATUT_SUSPENDU,
+                'action' => 'Suspendre',
+                'nb' => 3,
+            ]);
+    }
+
+    public function test_suspendre_apres_confirmation_annule_les_rendez_vous_puis_suspend(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->andReturn(3);
+        $service->shouldReceive('annulerRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(3)->globally()->ordered();
+        $service->shouldReceive('changerStatut')->once()->with(self::ID_ATELIER, Atelier::STATUT_SUSPENDU)
+            ->andReturn($this->atelier(Atelier::STATUT_SUSPENDU))->globally()->ordered();
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->from('/admin/ateliers')
+            ->patch('/admin/ateliers/'.self::ID_ATELIER.'/statut', ['statut' => Atelier::STATUT_SUSPENDU, 'annuler_rdv' => '1'])
+            ->assertRedirect('/admin/ateliers')
+            ->assertSessionHas('success', '« Couture <script>alert(1)</script> Plus » est suspendu : il n\'apparaît plus sur le site. '
+                .'3 rendez-vous en cours annulé(s) : les pièces sont rendues à leurs propriétaires.');
+    }
+
+    public function test_reactiver_un_atelier_ne_touche_pas_aux_rendez_vous(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('findOrFail')->andReturn($this->atelier(Atelier::STATUT_SUSPENDU));
+        $service->shouldNotReceive('nbRendezVousEnCours', 'annulerRendezVousEnCours');
+        $service->shouldReceive('changerStatut')->once()->with(self::ID_ATELIER, Atelier::STATUT_ACTIF)->andReturn($this->atelier());
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->patch('/admin/ateliers/'.self::ID_ATELIER.'/statut', ['statut' => Atelier::STATUT_ACTIF])
             ->assertSessionHas('success');
+    }
+
+    public function test_la_confirmation_de_suspension_est_affichee_et_echappee(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('listForAdmin')->andReturn(new LengthAwarePaginator(new Collection(), 0, 15));
+        $service->shouldReceive('statsAdmin')->andReturn(['total' => 0, Atelier::STATUT_ACTIF => 0, Atelier::STATUT_EN_ATTENTE => 0, Atelier::STATUT_SUSPENDU => 0]);
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->withSession(['confirmation_statut' => [
+                'id' => self::ID_ATELIER,
+                'nom' => 'Couture <script>alert(1)</script> Plus',
+                'statut' => Atelier::STATUT_SUSPENDU,
+                'action' => 'Suspendre',
+                'nb' => 3,
+            ]])
+            ->get('/admin/ateliers')
+            ->assertOk()
+            ->assertSee('data-confirmation-statut', false)
+            ->assertSee('a 3 rendez-vous en cours')
+            ->assertDontSee('<script>alert(1)</script>', false)
+            ->assertSee('name="annuler_rdv" value="1"', false)
+            ->assertSee(route('back.ateliers.statut', ['id' => self::ID_ATELIER]), false)
+            ->assertSee('Suspendre et annuler les rendez-vous');
     }
 
     public function test_suppression_annonce_les_services_supprimes(): void
     {
         $service = $this->mockService();
         $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(0);
         $service->shouldReceive('delete')->once()->with(self::ID_ATELIER);
 
         $this->actingAs($this->user(User::ROLE_ADMIN))
             ->delete('/admin/ateliers/'.self::ID_ATELIER)
             ->assertRedirect(route('back.ateliers'))
             ->assertSessionHas('success', 'L\'atelier « Couture <script>alert(1)</script> Plus » ainsi que son service a été supprimé.');
+    }
+
+    public function test_suppression_refusee_si_l_atelier_a_des_rendez_vous_en_cours(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('findOrFail')->andReturn($this->atelier());
+        $service->shouldReceive('nbRendezVousEnCours')->once()->with(self::ID_ATELIER)->andReturn(2);
+        $service->shouldNotReceive('delete');
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->from('/admin/ateliers')
+            ->delete('/admin/ateliers/'.self::ID_ATELIER)
+            ->assertRedirect('/admin/ateliers')
+            ->assertSessionMissing('success')
+            ->assertSessionHas('error', '« Couture <script>alert(1)</script> Plus » a 2 rendez-vous en cours : suppression impossible. '
+                .'Suspendez-le d\'abord : ses rendez-vous seront annulés et les pièces rendues à leurs propriétaires.');
     }
 
     /* --------------------------------------------------------------- Rendu */
@@ -369,5 +463,111 @@ class AteliersBackOfficeTest extends TestCase
             ->assertSee('name="_method" value="PUT"', false)
             ->assertSee('value="Couture &lt;script&gt;alert(1)&lt;/script&gt; Plus"', false)
             ->assertSee('name="horaires[lundi][plages][0][debut]" value="09:00"', false);
+    }
+
+    /* ------------------------------------------------- Contrôles de saisie (PHP) */
+
+    public function test_le_formulaire_atelier_n_a_aucun_controle_de_saisie_html(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('comptesAtelierDisponibles')
+            ->andReturn(collect([$this->user(User::ROLE_ATELIER, self::ID_LIBRE)]));
+
+        $html = $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->get('/admin/ateliers/creer')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, preg_match('/data-atelier-form>(.*?)<\/form>/s', $html, $formulaire));
+        $this->assertDoesNotMatchRegularExpression('/\s(required|maxlength|minlength|pattern|min|max|step)(=|\s|>)/', $formulaire[1]);
+        $this->assertDoesNotMatchRegularExpression('/type="(number|time|email|url|date)"/', $formulaire[1]);
+        $this->assertStringContainsString('aria-required="true"', $formulaire[1]);
+    }
+
+    public function test_creation_accepte_une_virgule_decimale_et_des_heures_sans_zero(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('verifierCompteAtelier')->andReturnNull();
+        $service->shouldReceive('create')
+            ->once()
+            ->withArgs(fn (array $data) => $data['latitude'] === '36.8065'
+                && $data['longitude'] === '10.1815'
+                && $data['horaires']['lundi'] === [['09:00', '12:30']])
+            ->andReturnUsing(fn (array $data) => new Atelier($data));
+
+        $payload = $this->payload(['latitude' => '36,8065', 'longitude' => '10,1815']);
+        $payload['horaires']['lundi']['plages'] = [['debut' => '9:00', 'fin' => '12h30']];
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->post('/admin/ateliers', $payload)
+            ->assertRedirect(route('back.ateliers'))
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_creation_refuse_une_position_qui_n_est_pas_un_nombre(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('verifierCompteAtelier')->andReturnNull();
+        $service->shouldNotReceive('create');
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->post('/admin/ateliers', $this->payload(['latitude' => '36,8,1', 'longitude' => '']))
+            ->assertSessionHasErrors([
+                'latitude' => 'La latitude doit être un nombre.',
+                'longitude' => 'La longitude est obligatoire si la latitude est renseignée.',
+            ]);
+    }
+
+    public function test_la_validation_en_temps_reel_admin_ne_cree_pas_l_atelier(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('verifierCompteAtelier')->andReturnNull();
+        $service->shouldNotReceive('create');
+        $entetes = ['Precognition' => 'true', 'Accept' => 'application/json'];
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->post('/admin/ateliers', $this->payload(), $entetes)
+            ->assertNoContent();
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->post('/admin/ateliers', $this->payload(['latitude' => '91', 'longitude' => '']), $entetes + ['Precognition-Validate-Only' => 'latitude,longitude'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                'latitude' => 'La latitude doit être comprise entre -90 et 90.',
+                'longitude' => 'La longitude est obligatoire si la latitude est renseignée.',
+            ]);
+    }
+
+    public function test_la_validation_en_temps_reel_ne_contourne_pas_les_acces(): void
+    {
+        $this->mockService()->shouldNotReceive('create', 'verifierCompteAtelier');
+
+        $this->actingAs($this->user(User::ROLE_ATELIER, self::ID_PROPRIO))
+            ->post('/admin/ateliers', $this->payload(), ['Precognition' => 'true', 'Accept' => 'application/json'])
+            ->assertForbidden();
+    }
+
+    public function test_la_recherche_admin_trop_longue_est_refusee_avec_un_message(): void
+    {
+        $service = $this->mockService();
+        $service->shouldReceive('listForAdmin')
+            ->with([], 15)
+            ->andReturn(new LengthAwarePaginator(new Collection(), 0, 15, 1, ['path' => '/admin/ateliers']));
+        $service->shouldReceive('statsAdmin')->andReturn(['total' => 0, Atelier::STATUT_ACTIF => 0, Atelier::STATUT_EN_ATTENTE => 0, Atelier::STATUT_SUSPENDU => 0]);
+        $recherche = str_repeat('a', 101);
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->get('/admin/ateliers?q='.$recherche)
+            ->assertRedirect(route('back.ateliers'))
+            ->assertSessionHasErrors(['q' => 'La recherche ne doit pas dépasser 100 caractères.']);
+
+        $this->actingAs($this->user(User::ROLE_ADMIN))
+            ->followingRedirects()
+            ->get('/admin/ateliers?q='.$recherche)
+            ->assertOk()
+            ->assertSee('La recherche ne doit pas dépasser 100 caractères.')
+            ->assertSee('class="search-box compact has-error"', false)
+            ->assertSee('name="q" value="'.$recherche.'"', false)
+            ->assertSee('aria-invalid="true"', false);
     }
 }

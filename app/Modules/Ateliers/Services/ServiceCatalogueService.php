@@ -4,6 +4,7 @@ namespace App\Modules\Ateliers\Services;
 
 use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Models\Service;
+use App\Modules\RendezVous\Models\RendezVous;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -50,6 +51,16 @@ class ServiceCatalogueService
     public function delete(Atelier $atelier, string $serviceId): void
     {
         $this->find($atelier, $serviceId)->delete();
+    }
+
+    /** Rendez-vous en attente ou confirmés qui réservent ce service : on ne le supprime pas sous les pieds du client. */
+    public function nbRendezVousEnCours(Atelier $atelier, string $serviceId): int
+    {
+        return RendezVous::query()
+            ->where('atelier_id', (string) $atelier->getKey())
+            ->where('service_id', $serviceId)
+            ->whereIn('statut', AtelierService::STATUTS_RDV_EN_COURS)
+            ->count();
     }
 
     private function scope(Atelier $atelier): Builder

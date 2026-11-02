@@ -5,6 +5,7 @@ namespace Tests\Feature\Ateliers;
 use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Ateliers\Models\Service;
 use App\Modules\Ateliers\Services\AtelierService;
+use App\Modules\Ateliers\Services\AvisService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -85,6 +86,14 @@ class AteliersFrontPagesTest extends TestCase
         $service->shouldReceive('villes')->andReturn(['La Marsa']);
         $this->app->instance(AtelierService::class, $service);
 
+        // La fiche lit aussi les avis (testés dans AvisTest) : aucun ici.
+        $avis = Mockery::mock(AvisService::class)->makePartial();
+        $avis->shouldReceive('resume')->andReturn(AvisService::resumeDe(collect()));
+        $avis->shouldReceive('recents')->andReturn(new Collection());
+        $avis->shouldReceive('avisDe')->andReturnNull();
+        $avis->shouldReceive('peutDonnerAvis')->andReturnFalse();
+        $this->app->instance(AvisService::class, $avis);
+
         return $service;
     }
 
@@ -97,7 +106,7 @@ class AteliersFrontPagesTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Ateliers près de', false)
-            ->assertSee(route('front.rdv', ['atelier' => self::ID_MARSA]), false)
+            ->assertSee(route('front.rdv.create', ['atelier_id' => self::ID_MARSA]), false)
             ->assertSee(route('front.ateliers.show', ['id' => self::ID_VERT]), false)
             ->assertSee('Prendre RDV chez L&#039;Atelier Vert', false)
             ->assertSee('à partir de <strong>10 TND</strong>', false)
@@ -109,7 +118,7 @@ class AteliersFrontPagesTest extends TestCase
             ->assertDontSee('meilleur match', false)
             ->assertDontSee('compatibilité', false);
 
-        $this->assertStringContainsString('/rendez-vous?atelier='.self::ID_MARSA, $response->getContent());
+        $this->assertStringContainsString('/rendez-vous/create?atelier_id='.self::ID_MARSA, $response->getContent());
     }
 
     public function test_marqueurs_json_inline_proteges_contre_l_injection_de_script(): void
@@ -176,6 +185,33 @@ class AteliersFrontPagesTest extends TestCase
             ->assertSessionHasErrors(['note_min', 'tri']);
     }
 
+    public function test_une_recherche_trop_longue_revient_sur_la_liste_avec_le_message_et_la_saisie(): void
+    {
+        $this->mockService();
+        $recherche = str_repeat('a', 101);
+
+        $this->get('/ateliers?q='.$recherche)
+            ->assertRedirect(route('front.ateliers'))
+            ->assertSessionHasErrors(['q' => 'La recherche ne doit pas dépasser 100 caractères.']);
+
+        $this->followingRedirects()
+            ->get('/ateliers?q='.$recherche)
+            ->assertOk()
+            ->assertSee('class="ateliers-search__errors" role="alert"', false)
+            ->assertSee('La recherche ne doit pas dépasser 100 caractères.')
+            ->assertSee('name="q" value="'.$recherche.'"', false);
+    }
+
+    public function test_une_recherche_valide_n_affiche_aucune_erreur(): void
+    {
+        $this->mockService();
+
+        $this->get('/ateliers?q=denim')
+            ->assertOk()
+            ->assertSee('data-swap="erreurs"', false)
+            ->assertDontSee('ateliers-search__errors', false);
+    }
+
     public function test_carte_json_avec_les_memes_filtres(): void
     {
         $this->mockService();
@@ -205,7 +241,7 @@ class AteliersFrontPagesTest extends TestCase
         $response->assertOk()
             ->assertSee('<h1>L&#039;Atelier Vert</h1>', false)
             ->assertSee('href="tel:+21671774210"', false)
-            ->assertSee(e(route('front.rdv', ['atelier' => self::ID_VERT, 'service' => self::ID_SERVICE])), false)
+            ->assertSee(e(route('front.rdv.create', ['atelier_id' => self::ID_VERT, 'service_id' => self::ID_SERVICE])), false)
             ->assertSee('Prendre RDV pour « Upcycling créatif » chez L&#039;Atelier Vert', false)
             ->assertSee('65 TND')
             ->assertSee('45 min')
@@ -247,13 +283,18 @@ class AteliersFrontPagesTest extends TestCase
         $service->markers(['q' => 'denim', 'lat' => '36.8', 'lng' => '10.2', 'tri' => 'distance']);
     }
 
-    public function test_accueil_garde_son_decor_d_origine(): void
+    /**
+     * L'accueil montre la même carte que la page Ateliers, mais sans lire la base au rendu
+     * (BlocksRemoteMongo ferait échouer la requête) : les marqueurs arrivent ensuite par carte.json.
+     */
+    public function test_accueil_affiche_la_carte_des_ateliers_sans_lire_la_base(): void
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('class="map-preview"', false)
-            ->assertSee('Solidarité Mode')
-            ->assertDontSee('leaflet', false)
-            ->assertDontSee('ateliers-map.js', false);
+            ->assertSee('data-atelier-map', false)
+            ->assertSee('data-endpoint="'.route('front.ateliers.map').'"', false)
+            ->assertSee('<script type="application/json" data-map-markers>[]</script>', false)
+            ->assertSee('ateliers-map.js', false)
+            ->assertDontSee('class="map-preview"', false);
     }
 }

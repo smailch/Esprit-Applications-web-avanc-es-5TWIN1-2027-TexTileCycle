@@ -1,0 +1,5 @@
+__pycache__/
+.pytest_cache/
+# Photos personnelles de test : jamais dans le dépôt.
+photos-test/*
+!photos-test/.gitkeep

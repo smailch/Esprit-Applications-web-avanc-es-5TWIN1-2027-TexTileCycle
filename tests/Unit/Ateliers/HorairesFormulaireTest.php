@@ -34,6 +34,15 @@ class HorairesFormulaireTest extends TestCase
         $this->assertSame('pas un tableau', HorairesFormulaire::depuisFormulaire('pas un tableau'));
     }
 
+    public function test_depuis_formulaire_complete_les_heures_saisies_sans_zero(): void
+    {
+        $resultat = HorairesFormulaire::depuisFormulaire([
+            'lundi' => ['ferme' => '0', 'plages' => [['debut' => '9:00', 'fin' => '12h30']]],
+        ]);
+
+        $this->assertSame([['09:00', '12:30']], $resultat['lundi']);
+    }
+
     public function test_pour_formulaire_accepte_les_deux_formats_et_renvoie_sept_jours(): void
     {
         $depuisStockage = HorairesFormulaire::pourFormulaire(['lundi' => [['09:00', '12:00']], 'dimanche' => []]);

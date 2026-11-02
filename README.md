@@ -108,6 +108,17 @@ php artisan db:seed
 php artisan serve
 ```
 
+Pour lancer aussi le service IA de diagnostic par photo (`ia-diagnostic/`, port 8001) en même temps que Laravel (Windows) :
+
+```bash
+powershell -ExecutionPolicy Bypass -File demarrer.ps1
+```
+
+Ctrl+C arrête les deux. Journal du service IA : `storage/logs/ia-diagnostic.log`.
+
+Avant le premier lancement, le service IA demande Python et trois modèles à télécharger (≈ 1,6 Go) : suivre le guide du module
+**[app/Modules/Ateliers/README.md](app/Modules/Ateliers/README.md)** (installation, `.env`, vérifications, dépannage).
+
 Ouvrir dans le navigateur :
 
 - **Front Office :** [http://127.0.0.1:8000](http://127.0.0.1:8000)

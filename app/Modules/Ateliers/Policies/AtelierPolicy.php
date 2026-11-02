@@ -24,7 +24,7 @@ class AtelierPolicy
 
     public function create(User $user): bool
     {
-        return false;
+        return $user->role === User::ROLE_ATELIER;
     }
 
     public function update(User $user, Atelier $atelier): bool

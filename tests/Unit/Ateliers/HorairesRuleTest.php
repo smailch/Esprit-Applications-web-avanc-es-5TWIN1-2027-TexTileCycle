@@ -82,7 +82,9 @@ class HorairesRuleTest extends TestCase
     {
         return [
             'jour non liste' => [['matin' => ['09:00', '12:00']], 'doivent être une liste de plages'],
+            'jour aux clés non consécutives' => [[1 => ['09:00', '12:00']], 'doivent être une liste de plages'],
             'jour scalaire' => ['09:00-12:00', 'doivent être une liste de plages'],
+            'plage associative' => [[['debut' => '09:00', 'fin' => '12:00']], 'exactement une heure de début'],
             'plage à 1 valeur' => [[['09:00']], 'exactement une heure de début et une heure de fin'],
             'plage à 3 valeurs' => [[['09:00', '12:00', '14:00']], 'exactement une heure de début'],
             'heure sans zéro' => [[['9:00', '12:00']], 'format HH:MM'],

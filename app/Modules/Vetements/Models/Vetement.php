@@ -3,6 +3,7 @@
 namespace App\Modules\Vetements\Models;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Vetements\Services\ResultatAnalyseVetement;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Jenssegers\Mongodb\Eloquent\Model;
@@ -36,6 +37,35 @@ class Vetement extends Model
         self::STATUS_RECYCLE,
     ];
 
+    /** Pièces clôturées : visibles dans l'historique du cycle de vie. */
+    public const STATUTS_HISTORIQUE = [
+        self::STATUS_REPARE,
+        self::STATUS_DONNE,
+        self::STATUS_RECYCLE,
+    ];
+
+    /** @var list<string> */
+    public const TYPES = [
+        'Veste',
+        'Manteau',
+        'Pantalon',
+        'Jean',
+        'Pull',
+        'Robe',
+        'Chemise',
+        'Jupe',
+        'T-shirt',
+        'Short',
+    ];
+
+    /** @var list<string> */
+    public const ETATS = [
+        'Excellent',
+        'Bon état',
+        'À réparer',
+        'Abîmé',
+    ];
+
     /** @var list<string> */
     public const MATERIALS = [
         'Coton',
@@ -56,6 +86,7 @@ class Vetement extends Model
 
     protected $fillable = [
         'user_id',
+        'atelier_id',
         'type',
         'size',
         'condition_label',
@@ -65,9 +96,11 @@ class Vetement extends Model
         'image_url',
         'image_path',
         'intended_action',
+        'analyse_ia',
     ];
 
     protected $casts = [
+        'analyse_ia' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -79,6 +112,11 @@ class Vetement extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', '_id');
+    }
+
+    public function atelier(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Ateliers\Models\Atelier::class, 'atelier_id', '_id');
     }
 
     public function cycleEvents(): HasMany
@@ -156,6 +194,43 @@ class Vetement extends Model
         return asset('icon.svg');
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function analyseIa(): ?array
+    {
+        return is_array($this->analyse_ia) ? $this->analyse_ia : null;
+    }
+
+    public function aDeuxiemeChance(): ?bool
+    {
+        $analyse = $this->analyseIa();
+        if (! $analyse || ! array_key_exists('deuxieme_chance', $analyse) || $analyse['deuxieme_chance'] === null) {
+            return null;
+        }
+
+        return (bool) $analyse['deuxieme_chance'];
+    }
+
+    public function libelleVerdictAnalyse(): ?string
+    {
+        $analyse = $this->analyseIa();
+        if (! $analyse) {
+            return null;
+        }
+
+        if (! empty($analyse['verdict_libelle'])) {
+            return (string) $analyse['verdict_libelle'];
+        }
+
+        return ResultatAnalyseVetement::libelleVerdict($analyse['verdict'] ?? null);
+    }
+
+    public function tonVerdictAnalyse(): string
+    {
+        return ResultatAnalyseVetement::tonVerdict($this->analyseIa()['verdict'] ?? null);
+    }
+
     public function intendedActionLabel(): string
     {
         return match ($this->intended_action) {
@@ -178,7 +253,7 @@ class Vetement extends Model
     {
         return match ($this->intended_action) {
             self::ACTION_DON => route('front.dons'),
-            self::ACTION_REPARATION => route('front.ateliers'),
+            self::ACTION_REPARATION => route('front.ateliers', ['vetement_id' => (string) $this->getKey()]),
             default => null,
         };
     }
@@ -189,6 +264,33 @@ class Vetement extends Model
             self::ACTION_DON => 'Proposer un don',
             self::ACTION_REPARATION => 'Trouver un atelier',
             default => null,
+        };
+    }
+
+    public static function estStatutHistorique(?string $status): bool
+    {
+        return in_array($status, self::STATUTS_HISTORIQUE, true);
+    }
+
+    public function estDansHistorique(): bool
+    {
+        return self::estStatutHistorique($this->status);
+    }
+
+    public function appartientALatelier(string $atelierId): bool
+    {
+        return $this->atelier_id !== null && (string) $this->atelier_id === (string) $atelierId;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function traitementsAtelier(): array
+    {
+        return match ($this->status) {
+            self::STATUS_EN_ATTENTE => [self::STATUS_EN_REPARATION],
+            self::STATUS_EN_REPARATION => [self::STATUS_REPARE],
+            default => [],
         };
     }
 }

@@ -39,15 +39,16 @@
     {{-- Table --}}
     <div class="panel table-panel">
         <table>
+            <caption class="sr-only">Dons</caption>
             <thead>
                 <tr>
-                    <th>Vêtement</th>
-                    <th>Association</th>
-                    <th>Donateur</th>
-                    <th>Message</th>
-                    <th>Statut</th>
-                    <th>Date</th>
-                    <th>Actions</th>
+                    <th scope="col">Vêtement</th>
+                    <th scope="col">Association</th>
+                    <th scope="col">Donateur</th>
+                    <th scope="col">Message</th>
+                    <th scope="col">Statut</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -117,8 +118,8 @@
                                           data-confirm="Ce don sera définitivement supprimé. Cette action est irréversible."
                                           data-confirm-title="Supprimer ce don ?">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="icon-btn danger" title="Supprimer">
-                                            <i data-lucide="trash-2"></i>
+                                        <button type="submit" class="icon-btn danger" aria-label="Supprimer ce don">
+                                            <i data-lucide="trash-2" aria-hidden="true"></i>
                                         </button>
                                     </form>
                                 @endif

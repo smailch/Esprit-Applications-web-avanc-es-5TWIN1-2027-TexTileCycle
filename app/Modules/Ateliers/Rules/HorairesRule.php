@@ -45,7 +45,7 @@ class HorairesRule implements InvokableRule
                 continue;
             }
 
-            if (! is_array($plages) || ! array_is_list($plages)) {
+            if (! is_array($plages) || $plages !== array_values($plages)) {
                 $fail("Les horaires du {$jour} doivent être une liste de plages [début, fin].");
 
                 continue;
@@ -54,7 +54,7 @@ class HorairesRule implements InvokableRule
             foreach ($plages as $index => $plage) {
                 $numero = $index + 1;
 
-                if (! is_array($plage) || ! array_is_list($plage) || count($plage) !== 2) {
+                if (! is_array($plage) || $plage !== array_values($plage) || count($plage) !== 2) {
                     $fail("La plage n°{$numero} du {$jour} doit contenir exactement une heure de début et une heure de fin.");
 
                     continue;

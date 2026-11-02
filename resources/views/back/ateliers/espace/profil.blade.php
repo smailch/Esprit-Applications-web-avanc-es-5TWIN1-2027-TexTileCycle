@@ -4,10 +4,6 @@
 
 @include('back.ateliers.partials.form-assets')
 
-@push('styles')
-    <link rel="stylesheet" href="{{ asset('css/rdv-back.css') }}">
-@endpush
-
 @php
     $statutDetail = match ($atelier->statut) {
         \App\Modules\Ateliers\Models\Atelier::STATUT_ACTIF => 'visible sur le site',
@@ -27,7 +23,6 @@
 <div class="ab-page">
     @include('back.ateliers.espace.partials.entete', ['onglet' => 'profil'])
     @include('back.ateliers.partials.flash')
-    @include('back.rendez-vous.partials.resume-atelier')
 
     <ul class="stats-grid four ab-stats ab-stats--list" aria-label="Résumé de mon atelier">
         @foreach ($cartes as $carte)

@@ -1,9 +1,12 @@
-{{-- En-tête commun de l'espace atelier. Paramètres : $atelier, $onglet ('profil' | 'services'), $nbServices. --}}
+{{-- En-tête commun de l'espace atelier. Paramètres : $atelier, $onglet ('profil' | 'services' | 'passeports'), $nbServices. --}}
 @php
     $statut = $atelier->statut;
     $onglets = [
         'profil' => ['route' => 'back.ateliers.profil', 'label' => 'Mon profil', 'icon' => 'store'],
         'services' => ['route' => 'back.ateliers.services', 'label' => 'Mes services', 'icon' => 'scissors'],
+        'passeports' => ['route' => 'back.ateliers.passeports', 'label' => 'Passeports', 'icon' => 'qr-code'],
+        'rdv' => ['route' => 'back.rdv', 'label' => 'Rendez-vous', 'icon' => 'calendar-days'],
+        'pieces' => ['route' => 'back.vetements', 'label' => 'Pièces à traiter', 'icon' => 'shirt'],
     ];
 @endphp
 
@@ -37,6 +40,10 @@
                 {{ $item['label'] }}
                 @if ($cle === 'services')
                     <span class="ab-tab__count" aria-label="{{ $nbServices }} {{ $nbServices > 1 ? 'services' : 'service' }}">{{ $nbServices }}</span>
+                @elseif ($cle === 'rdv' && isset($nbRdv) && $nbRdv !== null)
+                    <span class="ab-tab__count">{{ $nbRdv }}</span>
+                @elseif ($cle === 'pieces' && isset($nbPieces) && $nbPieces !== null)
+                    <span class="ab-tab__count">{{ $nbPieces }}</span>
                 @endif
             </a>
         @endforeach
@@ -53,4 +60,9 @@
         <i data-lucide="hourglass" aria-hidden="true"></i>
         <p><strong>Votre atelier est en cours de validation, il n'est pas encore visible sur la carte.</strong> Vous pouvez déjà compléter votre profil et vos services.</p>
     </div>
+@endif
+
+{{-- Assistant de l'atelier : bouton flottant sur toutes les pages de l'espace, sauf sur sa propre page. --}}
+@if (($onglet ?? null) !== 'assistant')
+    @include('back.ateliers.espace.partials.assistant-flottant')
 @endif

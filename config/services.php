@@ -30,4 +30,33 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'vision' => [
+        'provider' => env('VISION_PROVIDER', 'gemini'),
+        'gemini_key' => env('GEMINI_API_KEY'),
+        'gemini_model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
+        'openai_key' => env('OPENAI_API_KEY'),
+        'openai_model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+    ],
+
+    // Clé Gemini dédiée au matching et au pré-contrôle des dons (quota séparé).
+    // Vide : les fonctions IA du module (matching, pré-contrôle, besoins) sont désactivées.
+    'dons' => [
+        'gemini_key' => env('GEMINI_DONS_API_KEY'),
+    ],
+
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_id' => env('WHATSAPP_PHONE_ID'),
+        'business_account_id' => env('WHATSAPP_BUSINESS_ACCOUNT_ID'),
+        'from' => env('WHATSAPP_FROM'),
+        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v22.0'),
+    ],
+
+    'atlas' => [
+        'project_id' => env('ATLAS_PROJECT_ID'),
+        'public_key' => env('ATLAS_PUBLIC_KEY'),
+        'private_key' => env('ATLAS_PRIVATE_KEY'),
+        'sync' => env('ATLAS_IP_SYNC', env('APP_ENV') === 'local'),
+    ],
+
 ];
