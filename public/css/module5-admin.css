@@ -128,3 +128,45 @@ details.action-menu[open] .action-body { margin-top: 10px; }
 .ia-triage__source { margin: 10px 0 0; font-size: 10px; color: var(--muted); }
 .ia-suggere { box-shadow: 0 0 0 3px #d8cdf3; }
 .chip svg { width: 13px; height: 13px; }
+
+/* ---------- Rapport d'impact rédigé par l'IA ---------- */
+.rapport-outils select { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 12px; background: #fff; }
+.rapport { max-width: 980px; padding: 28px 32px; }
+.rapport__tete h2 { margin: 6px 0 10px; font-size: 26px; line-height: 1.2; }
+.rapport__source { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.rapport__source .ia-gravite { gap: 5px; }
+.rapport__source svg { width: 12px; height: 12px; }
+.rapport__chiffres { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 22px 0; }
+.rapport__chiffre { display: grid; gap: 2px; padding: 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.rapport__chiffre svg { width: 18px; height: 18px; color: var(--green); }
+.rapport__chiffre strong { font-size: 22px; }
+.rapport__chiffre span { font-size: 12px; color: var(--muted); }
+.rapport__chiffre small { font-size: 11px; font-weight: 700; color: var(--muted); }
+.rapport__chiffre small.est-hausse { color: var(--green); }
+.rapport__chiffre small.est-baisse { color: #c62828; }
+.rapport__resume { font-size: 15px; line-height: 1.7; margin: 0 0 20px; padding-left: 14px; border-left: 3px solid var(--green); }
+.rapport__grille { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; }
+.rapport__grille h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 14px; }
+.rapport__grille h3 svg { width: 16px; height: 16px; color: var(--green); }
+.rapport__grille p, .rapport__grille li { font-size: 13px; line-height: 1.65; }
+.rapport__grille ul, .rapport__grille ol { margin: 0; padding-left: 18px; }
+.rapport__methode { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.rapport__methode summary { cursor: pointer; font-weight: 700; }
+.rapport-vide { display: grid; justify-items: center; text-align: center; gap: 10px; padding: 48px 24px; }
+.rapport-vide > svg { width: 42px; height: 42px; color: var(--purple); }
+.rapport-vide p { max-width: 520px; color: var(--muted); margin: 0 0 6px; }
+
+@media (max-width: 850px) {
+  .rapport { padding: 20px; }
+  .rapport__chiffres { grid-template-columns: repeat(2, 1fr); }
+  .rapport__grille { grid-template-columns: 1fr; }
+}
+
+/* Impression / PDF : seul le rapport est imprimé. */
+@media print {
+  .sidebar, .back-header, .rapport-outils, .flash, .back-to-front, .rapport__methode summary { display: none !important; }
+  .back-shell { display: block; background: #fff; }
+  .back-main { padding: 0; }
+  .rapport { border: 0; box-shadow: none; max-width: none; padding: 0; }
+  .rapport__methode, .rapport__methode p { display: block !important; }
+}

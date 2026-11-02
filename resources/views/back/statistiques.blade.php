@@ -19,6 +19,7 @@
     <div class="dashboard-intro">
         <p class="muted">Indicateurs calculés en temps réel à partir de l'activité de tous les modules.</p>
         <div class="row-actions">
+            <a href="{{ route('back.statistiques.rapport') }}" class="btn btn-secondary small"><i data-lucide="sparkles"></i> Rapport d'impact IA</a>
             <a href="{{ route('back.statistiques.export') }}" class="btn btn-secondary small"><i data-lucide="download"></i> Export CSV</a>
             <form method="post" action="{{ route('back.statistiques.consolider') }}">
                 @csrf

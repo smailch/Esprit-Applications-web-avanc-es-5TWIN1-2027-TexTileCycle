@@ -4,11 +4,14 @@ namespace App\Modules\Statistiques\Http\Controllers\Back;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Core\Http\Controllers\Concerns\RendersBackOffice;
+use App\Modules\Statistiques\Models\RapportImpact;
 use App\Modules\Statistiques\Models\Statistique;
 use App\Modules\Statistiques\Services\AnalysePredictiveService;
 use App\Modules\Statistiques\Services\ConsolidationService;
 use App\Modules\Statistiques\Services\ImpactCalculator;
 use App\Modules\Statistiques\Services\PlatformMetricsService;
+use App\Modules\Statistiques\Services\RapportImpactService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -47,6 +50,60 @@ class StatistiqueController extends Controller
         $nb = $consolidation->consolider($data['mois'] ?? 12);
 
         return back()->with('success', "{$nb} mois consolidés dans l'historique.");
+    }
+
+    /** Rapport d'impact du mois choisi (par défaut le dernier mois terminé). */
+    public function rapport(Request $request, RapportImpactService $rapports)
+    {
+        $disponibles = $rapports->moisDisponibles();
+        $mois = array_key_exists((string) $request->query('mois'), $disponibles)
+            ? $request->query('mois')
+            : (array_keys($disponibles)[1] ?? array_key_first($disponibles));
+
+        return $this->backView('back.statistiques-rapport', [
+            'pageTitle' => "Rapport d'impact",
+            'mois' => $mois,
+            'disponibles' => $disponibles,
+            'rapport' => RapportImpact::with('auteur')->where('mois', $mois)->first(),
+            'historique' => RapportImpact::orderBy('mois', 'desc')->get(['mois', 'source', 'updated_at']),
+        ]);
+    }
+
+    public function genererRapport(Request $request, RapportImpactService $rapports)
+    {
+        $data = $request->validate([
+            'mois' => ['required', 'string', \Illuminate\Validation\Rule::in(array_keys($rapports->moisDisponibles()))],
+        ], ['mois.in' => 'Aucune donnée pour ce mois.']);
+
+        $rapport = $rapports->generer(Carbon::createFromFormat('Y-m-d', $data['mois'].'-01')->startOfDay(), $request->user());
+
+        $message = $rapport->estRedigeParIa()
+            ? "Rapport rédigé par l'IA : tous ses chiffres ont été vérifiés."
+            : ($rapport->chiffres_rejetes
+                ? "L'IA a cité des chiffres non vérifiables (".implode(', ', $rapport->chiffres_rejetes).') : rapport rédigé localement.'
+                : "IA indisponible : rapport rédigé localement à partir des mêmes chiffres.");
+
+        return redirect()->route('back.statistiques.rapport', ['mois' => $data['mois']])->with('success', $message);
+    }
+
+    /** Téléchargement du rapport au format Markdown. */
+    public function telechargerRapport(Request $request)
+    {
+        $rapport = RapportImpact::where('mois', (string) $request->query('mois'))->firstOrFail();
+        $c = $rapport->contenu;
+        $liste = fn (array $items) => implode("\n", array_map(fn ($i) => '- '.$i, $items));
+
+        $markdown = "# {$c['titre']}\n\n_Rapport d'impact TexTileCycle — ".ucfirst($rapport->faits['mois_libelle'])."_\n\n"
+            ."{$c['resume']}\n\n## Faits marquants\n\n{$liste($c['faits_marquants'])}\n\n"
+            ."## Impact écologique\n\n{$c['impact']}\n\n## Modération et sécurité\n\n{$c['moderation']}\n\n"
+            ."## Recommandations\n\n{$liste($c['recommandations'])}\n\n---\n"
+            .($rapport->estRedigeParIa() ? 'Rédigé par IA (Gemini) à partir des chiffres de la plateforme, vérifiés automatiquement.' : 'Rédigé automatiquement à partir des chiffres de la plateforme.')
+            .' Généré le '.$rapport->updated_at->format('d/m/Y à H:i').".\n";
+
+        return response($markdown, 200, [
+            'Content-Type' => 'text/markdown; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="rapport-impact-'.$rapport->mois.'.md"',
+        ]);
     }
 
     public function export(): StreamedResponse
