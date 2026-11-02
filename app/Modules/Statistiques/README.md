@@ -72,6 +72,28 @@ Le calcul se fait en PHP, sans API externe :
 
 Il faut au moins 3 mois avec de l'activité. En dessous, l'IA affiche « Historique encore insuffisant ».
 
+## IA : rapport d'impact rédigé (`RapportImpactService`)
+
+Page `/admin/statistiques/rapport` : bilan mensuel rédigé par Gemini, à imprimer en PDF ou à télécharger en Markdown. Un rapport est enregistré par mois (collection `rapports_impact`) et peut être régénéré.
+
+1. **Faits :** la plateforme calcule les chiffres du mois.
+   - activité, impact CO₂ et eau, équivalences en km de voiture et en douches ;
+   - variation par rapport au mois précédent, modération, tendances de l'IA prédictive.
+
+   Les mois passés viennent de l'historique consolidé, données de démo comprises, qui sont alors signalées comme telles.
+2. **Rédaction :** Gemini rédige un JSON structuré (titre, résumé, faits marquants, impact, modération, recommandations) **à partir de ces seuls chiffres**.
+3. **Garde-fou anti-hallucination :** chaque nombre du texte est comparé aux faits. Un seul chiffre inventé suffit pour écarter la rédaction IA, qui est remplacée par une rédaction locale. C'est aussi le cas si Gemini est indisponible.
+
+Les chiffres clés affichés en tête du rapport viennent toujours directement des données, jamais du texte de l'IA.
+
+## IA : modération et triage (modules Messagerie et Signalements)
+
+- **Modération des messages** (`ModerationMessageService`) : des règles locales (coordonnées, liens, arnaque, insultes en français et en darija, menaces) sont complétées par Gemini.
+  - **avertir** : l'auteur confirme avant l'envoi ;
+  - **bloquer** : le message est refusé, conservé comme preuve, et un signalement automatique est créé.
+- **Triage des signalements** (`TriageSignalementService`) : catégorie, gravité de 1 à 5, doublons, décision et note suggérées. L'analyse se lance automatiquement après la création d'un signalement, ou avec `php artisan signalements:trier`.
+- **Clé :** `GEMINI_ADMIN_API_KEY`, ou à défaut `GEMINI_API_KEY`. Sans clé, seules les règles locales s'appliquent.
+
 ## Commandes
 
 ```bash
