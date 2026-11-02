@@ -175,6 +175,7 @@ return [
         App\Modules\Vetements\Providers\VetementsModuleServiceProvider::class,
         App\Modules\Signalements\Providers\SignalementsModuleServiceProvider::class,
         App\Modules\Statistiques\Providers\StatistiquesModuleServiceProvider::class,
+        App\Modules\Messagerie\Providers\MessagerieModuleServiceProvider::class,
         App\Modules\Ateliers\Providers\AteliersModuleServiceProvider::class,
         App\Modules\RendezVous\Providers\RendezVousModuleServiceProvider::class,
 
