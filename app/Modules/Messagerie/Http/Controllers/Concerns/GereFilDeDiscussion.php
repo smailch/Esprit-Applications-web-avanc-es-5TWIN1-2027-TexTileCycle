@@ -31,7 +31,7 @@ trait GereFilDeDiscussion
         }
 
         return response()->json([
-            'messages' => $messages->map->pourAffichage($request->user())->values(),
+            'messages' => $messages->map(fn ($m) => $m->pourAffichage($request->user(), $model))->values(),
             'statut' => $model->statut,
             'ouverte' => $model->estOuverte(),
             'lu_par_autre_at' => $model->luParAutreCote($request->user())?->format('Y-m-d\TH:i:s.vP'),
@@ -42,7 +42,8 @@ trait GereFilDeDiscussion
     public function envoyer(EnvoyerMessageRequest $request, string $conversation)
     {
         $model = $this->trouver($conversation);
-        $this->authorize('view', $model);
+        // Seuls les participants écrivent (un admin qui modère un échange citoyen ↔ partenaire lit seulement).
+        abort_unless($model->estParticipant($request->user()), 403);
 
         if (! $model->estOuverte()) {
             $erreur = 'Cette conversation est fermée : vous ne pouvez plus y répondre.';
@@ -55,7 +56,7 @@ trait GereFilDeDiscussion
         $message = $this->messagerie->envoyer($model, $request->user(), $request->validated('contenu'));
 
         return $request->expectsJson()
-            ? response()->json(['message' => $message->load('auteur')->pourAffichage($request->user())], 201)
+            ? response()->json(['message' => $message->load('auteur')->pourAffichage($request->user(), $model)], 201)
             : redirect($this->routeFil($model).'#fin');
     }
 
@@ -67,7 +68,7 @@ trait GereFilDeDiscussion
 
     protected function trouver(string $id): Conversation
     {
-        return Conversation::with(['interlocuteur', 'admin', 'contexte'])->findOrFail($id);
+        return Conversation::with(['interlocuteur', 'admin', 'partenaire', 'contexte'])->findOrFail($id);
     }
 
     protected function filVue(Conversation $conversation, Request $request): array

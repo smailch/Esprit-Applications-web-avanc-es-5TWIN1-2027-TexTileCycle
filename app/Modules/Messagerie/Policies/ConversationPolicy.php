@@ -6,18 +6,19 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Messagerie\Models\Conversation;
 
 /**
- * Seuls l'équipe d'administration et l'interlocuteur de la conversation y ont accès.
+ * - Participants (citoyen, partenaire contacté, équipe admin pour un échange support) : lecture et réponse.
+ * - Administrateurs : lecture de tous les échanges (modération), modification et suppression.
  */
 class ConversationPolicy
 {
     public function view(User $user, Conversation $conversation): bool
     {
-        return $user->isAdmin() || (string) $conversation->user_id === (string) $user->getKey();
+        return $user->isAdmin() || $conversation->estParticipant($user);
     }
 
     public function repondre(User $user, Conversation $conversation): bool
     {
-        return $this->view($user, $conversation) && $conversation->estOuverte();
+        return $conversation->estParticipant($user) && $conversation->estOuverte();
     }
 
     public function update(User $user, Conversation $conversation): bool

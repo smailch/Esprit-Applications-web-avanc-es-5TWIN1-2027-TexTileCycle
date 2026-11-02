@@ -21,7 +21,8 @@ class StoreConversationRequest extends BaseRequest
 
     public function rules(): array
     {
-        return parent::rules() + [
+        // L'admin choisit directement un compte (user_id) : pas de recherche de destinataire.
+        return array_diff_key(parent::rules(), ['destinataire' => true]) + [
             'user_id' => ['required', 'string'],
             'contexte_type' => ['nullable', Rule::in(array_keys(Conversation::CONTEXTES))],
             'contexte_id' => ['nullable', 'required_with:contexte_type', 'string', 'max:64'],
@@ -58,7 +59,7 @@ class StoreConversationRequest extends BaseRequest
         });
     }
 
-    public function destinataire(): User
+    public function compteDestinataire(): User
     {
         return User::findOrFail($this->validated('user_id'));
     }

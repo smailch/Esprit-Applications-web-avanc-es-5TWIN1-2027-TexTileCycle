@@ -12,6 +12,7 @@ $objectId = '[0-9a-fA-F]{24}';
 Route::middleware('auth')->prefix('messages')->name('messagerie.')->group(function () use ($objectId) {
     Route::get('/', [MessagerieController::class, 'index'])->name('index');
     Route::get('/non-lues', [MessagerieController::class, 'nonLues'])->name('non-lues');
+    Route::get('/destinataires', [MessagerieController::class, 'destinataires'])->middleware('throttle:60,1')->name('destinataires');
     Route::get('/nouveau', [MessagerieController::class, 'create'])->name('create');
     Route::post('/', [MessagerieController::class, 'store'])->middleware('throttle:10,1')->name('store');
     Route::get('/{conversation}', [MessagerieController::class, 'show'])->where('conversation', $objectId)->name('show');

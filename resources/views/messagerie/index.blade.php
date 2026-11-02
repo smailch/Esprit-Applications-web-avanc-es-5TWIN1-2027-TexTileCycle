@@ -35,9 +35,9 @@
 
         <section class="msg-fil msg-fil--vide">
             <i data-lucide="messages-square" aria-hidden="true"></i>
-            <h2>Une question pour l'équipe ?</h2>
-            <p>L'équipe TexTileCycle vous répond ici : suivi d'un signalement, validation de votre compte, question sur la plateforme…</p>
-            <a href="{{ route('front.messagerie.create') }}" class="btn btn-primary"><i data-lucide="square-pen" aria-hidden="true"></i> Écrire à l'équipe</a>
+            <h2>Une question ? Écrivez-nous</h2>
+            <p>Contactez l'équipe TexTileCycle, un atelier pour une réparation ou une association pour un don. Les réponses arrivent ici.</p>
+            <a href="{{ route('front.messagerie.create') }}" class="btn btn-primary"><i data-lucide="square-pen" aria-hidden="true"></i> Nouveau message</a>
         </section>
     </div>
 </div>

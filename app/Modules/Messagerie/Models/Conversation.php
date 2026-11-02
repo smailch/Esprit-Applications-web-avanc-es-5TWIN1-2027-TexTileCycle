@@ -31,7 +31,16 @@ class Conversation extends Model
         self::STATUT_FERMEE => 'Fermée',
     ];
 
-    /** Côté d'un participant : l'équipe admin ou l'utilisateur. */
+    /** Échange avec l'équipe d'administration (boîte partagée des admins). */
+    public const TYPE_SUPPORT = 'support';
+
+    /** Échange entre un citoyen et le responsable d'un atelier / d'une association. */
+    public const TYPE_PARTENAIRE = 'partenaire';
+
+    /**
+     * Côtés d'une conversation. COTE_ADMIN désigne le côté « équipe » : l'administration
+     * pour un échange support, le responsable du partenaire pour un échange partenaire.
+     */
     public const COTE_ADMIN = 'admin';
 
     public const COTE_UTILISATEUR = 'utilisateur';
@@ -48,9 +57,11 @@ class Conversation extends Model
     protected $collection = 'conversations';
 
     protected $fillable = [
+        'type',
         'sujet',
         'user_id',
         'admin_id',
+        'partenaire_id',
         'contexte_type',
         'contexte_id',
         'statut',
@@ -74,6 +85,7 @@ class Conversation extends Model
     ];
 
     protected $attributes = [
+        'type' => self::TYPE_SUPPORT,
         'statut' => self::STATUT_OUVERTE,
         'non_lus_admin' => 0,
         'non_lus_utilisateur' => 0,
@@ -96,6 +108,12 @@ class Conversation extends Model
         return $this->belongsTo(User::class, 'admin_id', '_id');
     }
 
+    /** Responsable de l'atelier ou de l'association contacté par un citoyen (N:1 users). */
+    public function partenaire(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'partenaire_id', '_id');
+    }
+
     /** Messages du fil (1:N). */
     public function messages(): HasMany
     {
@@ -108,9 +126,56 @@ class Conversation extends Model
         return $this->morphTo('contexte', 'contexte_type', 'contexte_id', '_id');
     }
 
-    public static function coteDe(User $user): string
+    public function estAvecPartenaire(): bool
     {
-        return $user->isAdmin() ? self::COTE_ADMIN : self::COTE_UTILISATEUR;
+        return $this->type === self::TYPE_PARTENAIRE;
+    }
+
+    /**
+     * Côté de l'utilisateur dans CETTE conversation, ou null s'il n'y participe pas
+     * (un admin qui consulte un échange citoyen ↔ partenaire pour la modération).
+     */
+    public function cotePour(User $user): ?string
+    {
+        $id = (string) $user->getKey();
+
+        return match (true) {
+            $id === (string) $this->user_id => self::COTE_UTILISATEUR,
+            $this->estAvecPartenaire() && $id === (string) $this->partenaire_id => self::COTE_ADMIN,
+            ! $this->estAvecPartenaire() && $user->isAdmin() => self::COTE_ADMIN,
+            default => null,
+        };
+    }
+
+    public function estParticipant(User $user): bool
+    {
+        return $this->cotePour($user) !== null;
+    }
+
+    /**
+     * L'autre participant, tel que l'utilisateur le voit : nom, initiales et précision.
+     *
+     * @return array{nom: string, initiales: string, detail: ?string}
+     */
+    public function correspondantPour(User $lecteur): array
+    {
+        $nomPartenaire = $this->contexte?->nom ?? $this->partenaire?->name ?? 'Partenaire';
+        $nomCitoyen = $this->interlocuteur?->name ?? 'Compte supprimé';
+
+        [$nom, $detail] = match (true) {
+            $this->cotePour($lecteur) === self::COTE_UTILISATEUR && $this->estAvecPartenaire()
+                => [$nomPartenaire, $this->contexte_type === 'Association' ? 'Association' : 'Atelier'],
+            $this->cotePour($lecteur) === self::COTE_UTILISATEUR
+                => ['Équipe TexTileCycle', 'Administration'],
+            $this->cotePour($lecteur) === self::COTE_ADMIN
+                => [$nomCitoyen, $this->interlocuteur?->roleLabel()],
+            default => [$nomCitoyen.' ↔ '.$nomPartenaire, 'Échange citoyen / partenaire (modération)'],
+        };
+
+        $initiales = collect(preg_split('/\s+/', trim(str_replace('↔', ' ', $nom))))
+            ->filter()->take(2)->map(fn ($mot) => mb_strtoupper(mb_substr($mot, 0, 1)))->implode('');
+
+        return ['nom' => $nom, 'initiales' => $initiales ?: 'TC', 'detail' => $detail];
     }
 
     public function estOuverte(): bool
@@ -130,13 +195,21 @@ class Conversation extends Model
 
     public function nonLusPour(User $user): int
     {
-        return (int) (self::coteDe($user) === self::COTE_ADMIN ? $this->non_lus_admin : $this->non_lus_utilisateur);
+        return match ($this->cotePour($user)) {
+            self::COTE_ADMIN => (int) $this->non_lus_admin,
+            self::COTE_UTILISATEUR => (int) $this->non_lus_utilisateur,
+            default => 0,
+        };
     }
 
     /** Date à laquelle l'AUTRE côté a lu la conversation pour la dernière fois (accusé de lecture). */
     public function luParAutreCote(User $user): ?\Carbon\Carbon
     {
-        return self::coteDe($user) === self::COTE_ADMIN ? $this->lu_utilisateur_at : $this->lu_admin_at;
+        return match ($this->cotePour($user)) {
+            self::COTE_ADMIN => $this->lu_utilisateur_at,
+            self::COTE_UTILISATEUR => $this->lu_admin_at,
+            default => null,
+        };
     }
 
     public function contexteLabel(): ?string

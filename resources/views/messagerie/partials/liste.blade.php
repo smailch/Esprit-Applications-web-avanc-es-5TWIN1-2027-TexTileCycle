@@ -15,19 +15,28 @@
             <label class="sr-only" for="msg-q">Rechercher une conversation</label>
             <input id="msg-q" type="search" name="q" value="{{ $filtres['q'] ?? '' }}" placeholder="{{ $estAdmin ? 'Nom, e-mail, sujet…' : 'Rechercher…' }}">
             @if($filtreActif !== 'toutes')<input type="hidden" name="filtre" value="{{ $filtreActif }}">@endif
-            @if($estAdmin && ! empty($filtres['role']))<input type="hidden" name="role" value="{{ $filtres['role'] }}">@endif
+            @foreach(['role', 'type'] as $champ)
+                @if($estAdmin && ! empty($filtres[$champ]))<input type="hidden" name="{{ $champ }}" value="{{ $filtres[$champ] }}">@endif
+            @endforeach
         </form>
         <a href="{{ route($routePrefixe.'.create') }}" class="btn btn-primary small" aria-label="Nouvelle conversation"><i data-lucide="square-pen" aria-hidden="true"></i> Nouveau</a>
     </div>
 
     <nav class="msg-filtres" aria-label="Filtrer les conversations">
         @foreach(\App\Modules\Messagerie\Services\MessagerieService::FILTRES as $cle => $libelle)
-            <a href="{{ route($routePrefixe.'.index', array_filter(['filtre' => $cle === 'toutes' ? null : $cle, 'role' => $filtres['role'] ?? null, 'q' => $filtres['q'] ?? null])) }}"
+            <a href="{{ route($routePrefixe.'.index', array_filter(['filtre' => $cle === 'toutes' ? null : $cle, 'role' => $filtres['role'] ?? null, 'type' => $filtres['type'] ?? null, 'q' => $filtres['q'] ?? null])) }}"
                @class(['chip', 'active' => $filtreActif === $cle])>{{ $libelle }}</a>
         @endforeach
         @if($estAdmin)
             <form method="get" action="{{ route($routePrefixe.'.index') }}" class="msg-role">
                 @if($filtreActif !== 'toutes')<input type="hidden" name="filtre" value="{{ $filtreActif }}">@endif
+                <label class="sr-only" for="msg-type">Type d'échange</label>
+                <select id="msg-type" name="type" onchange="this.form.submit()">
+                    <option value="">Tous les échanges</option>
+                    @foreach($types as $valeur => $libelle)
+                        <option value="{{ $valeur }}" @selected(($filtres['type'] ?? null) === $valeur)>{{ $libelle }}</option>
+                    @endforeach
+                </select>
                 <label class="sr-only" for="msg-role">Type d'interlocuteur</label>
                 <select id="msg-role" name="role" onchange="this.form.submit()">
                     <option value="">Tous</option>
@@ -43,22 +52,20 @@
         @forelse($conversations as $conv)
             @php
                 $nonLus = $conv->nonLusPour($lecteur);
-                $titre = $estAdmin ? ($conv->interlocuteur?->name ?? 'Compte supprimé') : $conv->sujet;
+                $correspondant = $conv->correspondantPour($lecteur);
                 $estActuelle = isset($actuelle) && (string) $actuelle->getKey() === (string) $conv->getKey();
             @endphp
             <li>
                 <a href="{{ route($routePrefixe.'.show', $conv->getKey()) }}" @class(['msg-item', 'est-actuelle' => $estActuelle, 'est-non-lue' => $nonLus > 0]) @if($estActuelle) aria-current="page" @endif>
-                    <span class="msg-avatar" aria-hidden="true">{{ $estAdmin ? ($conv->interlocuteur?->initials() ?? '?') : 'TC' }}</span>
+                    <span @class(['msg-avatar', 'est-partenaire' => $conv->estAvecPartenaire()]) aria-hidden="true">{{ $correspondant['initiales'] }}</span>
                     <span class="msg-item__corps">
                         <span class="msg-item__ligne">
-                            <b>{{ $titre }}</b>
+                            <b>{{ $correspondant['nom'] }}</b>
                             <time datetime="{{ $conv->dernier_message_at?->toIso8601String() }}">{{ $conv->dernier_message_at?->isToday() ? $conv->dernier_message_at->format('H:i') : $conv->dernier_message_at?->format('d/m') }}</time>
                         </span>
-                        @if($estAdmin)
-                            <span class="msg-item__sujet">{{ $conv->interlocuteur?->roleLabel() }} · {{ $conv->sujet }}</span>
-                        @endif
+                        <span class="msg-item__sujet">{{ $correspondant['detail'] ? $correspondant['detail'].' · ' : '' }}{{ $conv->sujet }}</span>
                         <span class="msg-item__ligne">
-                            <span class="msg-item__apercu">{{ $conv->dernier_message_cote === \App\Modules\Messagerie\Models\Conversation::coteDe($lecteur) ? 'Vous : ' : '' }}{{ $conv->apercu }}</span>
+                            <span class="msg-item__apercu">{{ $conv->dernier_message_cote && $conv->dernier_message_cote === $conv->cotePour($lecteur) ? 'Vous : ' : '' }}{{ $conv->apercu }}</span>
                             @if($nonLus > 0)
                                 <span class="nav-badge" aria-label="{{ $nonLus }} message(s) non lu(s)">{{ $nonLus }}</span>
                             @elseif(! $conv->estOuverte())

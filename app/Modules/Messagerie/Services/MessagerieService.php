@@ -2,6 +2,8 @@
 
 namespace App\Modules\Messagerie\Services;
 
+use App\Modules\Associations\Models\Association;
+use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Auth\Models\User;
 use App\Modules\Messagerie\Models\Conversation;
 use App\Modules\Messagerie\Models\Message;
@@ -26,12 +28,14 @@ class MessagerieService
     public function boite(User $user, array $filtres = [], int $parPage = 20): LengthAwarePaginator
     {
         $estAdmin = $user->isAdmin();
-        $champNonLus = $estAdmin ? 'non_lus_admin' : 'non_lus_utilisateur';
 
         return Conversation::query()
-            ->with(['interlocuteur'])
-            ->when(! $estAdmin, fn ($q) => $q->where('user_id', (string) $user->getKey()))
-            ->when(($filtres['filtre'] ?? null) === 'non_lues', fn ($q) => $q->where($champNonLus, '>', 0))
+            ->with(['interlocuteur', 'partenaire', 'contexte'])
+            ->when(! $estAdmin, fn ($q) => $q->where(fn ($s) => $this->participations($s, $user)))
+            ->when(($filtres['filtre'] ?? null) === 'non_lues', fn ($q) => $this->nonLuesPour($q, $user))
+            ->when($estAdmin && ($filtres['type'] ?? null), fn ($q) => $filtres['type'] === Conversation::TYPE_PARTENAIRE
+                ? $q->where('type', Conversation::TYPE_PARTENAIRE)
+                : $q->where('type', '!=', Conversation::TYPE_PARTENAIRE))
             ->when(in_array($filtres['filtre'] ?? null, [Conversation::STATUT_OUVERTE, Conversation::STATUT_FERMEE], true),
                 fn ($q) => $q->where('statut', $filtres['filtre']))
             ->when($estAdmin && ($filtres['role'] ?? null), fn ($q) => $q->whereIn('user_id', $this->idsParRole($filtres['role'])))
@@ -51,22 +55,52 @@ class MessagerieService
 
     public function nonLues(User $user): int
     {
-        return Conversation::query()
-            ->when(! $user->isAdmin(), fn ($q) => $q->where('user_id', (string) $user->getKey()))
-            ->where($user->isAdmin() ? 'non_lus_admin' : 'non_lus_utilisateur', '>', 0)
-            ->count();
+        return $this->nonLuesPour(Conversation::query(), $user)->count();
     }
 
-    public function creer(User $auteur, User $interlocuteur, array $data): Conversation
+    /**
+     * Conversations non lues par l'utilisateur. Un admin n'est concerné que par les échanges
+     * support ; les autres par leurs échanges en tant que citoyen OU en tant que partenaire.
+     */
+    private function nonLuesPour($query, User $user)
+    {
+        if ($user->isAdmin()) {
+            return $query->where('type', '!=', Conversation::TYPE_PARTENAIRE)->where('non_lus_admin', '>', 0);
+        }
+
+        $id = (string) $user->getKey();
+
+        return $query->where(function ($q) use ($id) {
+            $q->where(fn ($s) => $s->where('user_id', $id)->where('non_lus_utilisateur', '>', 0))
+                ->orWhere(fn ($s) => $s->where('partenaire_id', $id)->where('non_lus_admin', '>', 0));
+        });
+    }
+
+    /** Conversations où l'utilisateur est le citoyen OU le partenaire contacté. */
+    private function participations($query, User $user)
+    {
+        $id = (string) $user->getKey();
+
+        return $query->where('user_id', $id)->orWhere('partenaire_id', $id);
+    }
+
+    /**
+     * @param  User|null  $partenaire  responsable de l'atelier / l'association contacté (échange citoyen ↔ partenaire)
+     */
+    public function creer(User $auteur, User $interlocuteur, array $data, ?User $partenaire = null): Conversation
     {
         $conversation = Conversation::create([
+            'type' => $partenaire ? Conversation::TYPE_PARTENAIRE : Conversation::TYPE_SUPPORT,
             'sujet' => $data['sujet'],
             'user_id' => (string) $interlocuteur->getKey(),
             'admin_id' => $auteur->isAdmin() ? (string) $auteur->getKey() : null,
+            'partenaire_id' => $partenaire ? (string) $partenaire->getKey() : null,
             'contexte_type' => $data['contexte_type'] ?? null,
             'contexte_id' => isset($data['contexte_id']) ? (string) $data['contexte_id'] : null,
             'statut' => Conversation::STATUT_OUVERTE,
-            'initiee_par' => Conversation::coteDe($auteur),
+            'initiee_par' => (string) $auteur->getKey() === (string) $interlocuteur->getKey()
+                ? Conversation::COTE_UTILISATEUR
+                : Conversation::COTE_ADMIN,
         ]);
 
         $this->envoyer($conversation, $auteur, $data['message']);
@@ -76,7 +110,8 @@ class MessagerieService
 
     public function envoyer(Conversation $conversation, User $auteur, string $contenu): Message
     {
-        $cote = Conversation::coteDe($auteur);
+        $cote = $conversation->cotePour($auteur)
+            ?? throw new \LogicException('Cet utilisateur ne participe pas à la conversation.');
         $contenu = trim($contenu);
 
         $message = Message::create([
@@ -95,7 +130,7 @@ class MessagerieService
             $cote === Conversation::COTE_ADMIN ? 'non_lus_admin' : 'non_lus_utilisateur' => 0,
         ]);
 
-        if ($cote === Conversation::COTE_ADMIN) {
+        if ($cote === Conversation::COTE_ADMIN && ! $conversation->estAvecPartenaire()) {
             $conversation->admin_id ??= (string) $auteur->getKey();
         }
 
@@ -107,7 +142,10 @@ class MessagerieService
 
     public function marquerLue(Conversation $conversation, User $lecteur): void
     {
-        $cote = Conversation::coteDe($lecteur);
+        // Un admin qui consulte un échange citoyen ↔ partenaire ne le marque pas comme lu.
+        if (! $cote = $conversation->cotePour($lecteur)) {
+            return;
+        }
         $champ = $cote === Conversation::COTE_ADMIN ? 'non_lus_admin' : 'non_lus_utilisateur';
 
         $conversation->fill([
@@ -148,6 +186,83 @@ class MessagerieService
             ->orderBy('name')
             ->get(['name', 'email', 'role'])
             ->groupBy(fn (User $u) => $u->roleLabel());
+    }
+
+    /**
+     * Destinataires possibles pour un citoyen (recherche à partir de 3 caractères) :
+     * l'équipe TexTileCycle, les ateliers et les associations actifs.
+     *
+     * @return list<array{valeur: string, nom: string, detail: string, icone: string}>
+     */
+    public function rechercherDestinataires(User $auteur, string $recherche, int $limite = 6): array
+    {
+        $recherche = trim($recherche);
+
+        if (mb_strlen($recherche) < 3) {
+            return [];
+        }
+
+        $regex = '/'.preg_quote($recherche, '/').'/i';
+        $moi = (string) $auteur->getKey();
+        $resultats = [];
+
+        if (preg_match($regex.'u', 'Équipe TexTileCycle administration admin support equipe')) {
+            $resultats[] = ['valeur' => 'equipe', 'nom' => 'Équipe TexTileCycle', 'detail' => 'Administration de la plateforme', 'icone' => 'shield-check'];
+        }
+
+        $ateliers = Atelier::where('statut', Atelier::STATUT_ACTIF)
+            ->where(fn ($q) => $q->where('nom', 'regex', $regex)->orWhere('ville', 'regex', $regex)->orWhere('specialite', 'regex', $regex))
+            ->where('user_id', '!=', $moi)
+            ->orderBy('nom')->take($limite)->get();
+
+        foreach ($ateliers as $atelier) {
+            $resultats[] = [
+                'valeur' => 'atelier:'.$atelier->getKey(),
+                'nom' => $atelier->nom,
+                'detail' => implode(' · ', array_filter(['Atelier', $atelier->ville, $atelier->specialite])),
+                'icone' => 'scissors',
+            ];
+        }
+
+        $associations = Association::where('statut', Association::STATUT_ACTIF)
+            ->where(fn ($q) => $q->where('nom', 'regex', $regex)->orWhere('adresse', 'regex', $regex))
+            ->where('user_id', '!=', $moi)
+            ->orderBy('nom')->take($limite)->get();
+
+        foreach ($associations as $association) {
+            $resultats[] = [
+                'valeur' => 'association:'.$association->getKey(),
+                'nom' => $association->nom,
+                'detail' => implode(' · ', array_filter(['Association', $association->adresse])),
+                'icone' => 'heart-handshake',
+            ];
+        }
+
+        return $resultats;
+    }
+
+    /**
+     * Résout la valeur choisie (« equipe », « atelier:<id> », « association:<id> »).
+     * Renvoie null si le destinataire n'existe pas ou n'est pas joignable.
+     *
+     * @return array{partenaire: ?User, contexte: ?\Illuminate\Database\Eloquent\Model, nom: string}|null
+     */
+    public function resoudreDestinataire(?string $valeur, User $auteur): ?array
+    {
+        if ($valeur === 'equipe') {
+            return ['partenaire' => null, 'contexte' => null, 'nom' => 'Équipe TexTileCycle'];
+        }
+
+        [$type, $id] = array_pad(explode(':', (string) $valeur, 2), 2, null);
+        $modele = ['atelier' => Atelier::class, 'association' => Association::class][$type] ?? null;
+        $partenaire = $modele && $id ? $modele::where('statut', $modele::STATUT_ACTIF)->find($id) : null;
+        $responsable = $partenaire ? User::find($partenaire->user_id) : null;
+
+        if (! $responsable || ! $responsable->isActive() || (string) $responsable->getKey() === (string) $auteur->getKey()) {
+            return null;
+        }
+
+        return ['partenaire' => $responsable, 'contexte' => $partenaire, 'nom' => $partenaire->nom];
     }
 
     private function idsParRole(string $role): array

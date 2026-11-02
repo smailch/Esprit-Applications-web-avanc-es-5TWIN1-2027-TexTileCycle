@@ -5,6 +5,8 @@
 --}}
 @php
     $lecteur = auth()->user();
+    $correspondant = $conversation->correspondantPour($lecteur);
+    $enModeration = ! $conversation->estParticipant($lecteur);
     $luParAutre = $conversation->luParAutreCote($lecteur);
     $dernierMoi = $messages->filter(fn ($m) => (string) $m->user_id === (string) $lecteur->getKey())->last();
     $dernier = $messages->last();
@@ -19,13 +21,15 @@
 
     <header class="msg-fil__tete">
         <a href="{{ route($routePrefixe.'.index') }}" class="icon-btn msg-retour" aria-label="Retour aux conversations"><i data-lucide="arrow-left" aria-hidden="true"></i></a>
-        <span class="msg-avatar" aria-hidden="true">{{ $estAdmin ? ($conversation->interlocuteur?->initials() ?? '?') : 'TC' }}</span>
+        <span @class(['msg-avatar', 'est-partenaire' => $conversation->estAvecPartenaire()]) aria-hidden="true">{{ $correspondant['initiales'] }}</span>
         <div class="msg-fil__titre">
-            <h2>{{ $estAdmin ? ($conversation->interlocuteur?->name ?? 'Compte supprimé') : 'Équipe TexTileCycle' }}</h2>
+            <h2>{{ $correspondant['nom'] }}</h2>
             <p>
                 {{ $conversation->sujet }}
-                @if($estAdmin && $conversation->interlocuteur)
+                @if($estAdmin && ! $enModeration && $conversation->interlocuteur)
                     · {{ $conversation->interlocuteur->roleLabel() }} · {{ $conversation->interlocuteur->email }}
+                @elseif($correspondant['detail'])
+                    · {{ $correspondant['detail'] }}
                 @endif
             </p>
             @if($label = $conversation->contexteLabel())
@@ -78,7 +82,13 @@
         <li id="fin" aria-hidden="true"></li>
     </ol>
 
-    @if($peutRepondre)
+    @if($enModeration)
+        <p class="msg-ferme msg-moderation">
+            <i data-lucide="shield-check" aria-hidden="true"></i>
+            Échange entre un citoyen et un partenaire : vous le consultez en modération (lecture seule).
+            <a href="{{ route('back.messagerie.edit', $conversation->getKey()) }}">Fermer la conversation</a>
+        </p>
+    @elseif($peutRepondre)
         <form method="post" action="{{ route($routePrefixe.'.messages.store', $conversation->getKey()) }}" class="msg-saisie" data-messagerie-form>
             @csrf
             <label class="sr-only" for="msg-contenu">Votre message</label>

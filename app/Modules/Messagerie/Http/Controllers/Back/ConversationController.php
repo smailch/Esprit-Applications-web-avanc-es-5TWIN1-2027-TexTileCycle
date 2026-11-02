@@ -55,7 +55,7 @@ class ConversationController extends Controller
 
     public function store(StoreConversationRequest $request)
     {
-        $destinataire = $request->destinataire();
+        $destinataire = $request->compteDestinataire();
         $conversation = $this->messagerie->creer($request->user(), $destinataire, $request->validated());
 
         return redirect()
@@ -112,12 +112,13 @@ class ConversationController extends Controller
 
     private function boite(Request $request): array
     {
-        $filtres = $request->only(['filtre', 'role', 'q']);
+        $filtres = $request->only(['filtre', 'role', 'type', 'q']);
 
         return [
             'conversations' => $this->messagerie->boite($request->user(), $filtres),
             'filtres' => $filtres,
             'roles' => [User::ROLE_CITOYEN => 'Citoyens', User::ROLE_ATELIER => 'Ateliers', User::ROLE_ASSOCIATION => 'Associations'],
+            'types' => [Conversation::TYPE_SUPPORT => 'Avec l\'équipe', Conversation::TYPE_PARTENAIRE => 'Citoyen ↔ partenaire'],
         ];
     }
 }

@@ -34,7 +34,7 @@
         <div class="sidebar-bottom">
             @if($user && ! $user->isAdmin())
                 <a href="{{ route('front.messagerie.index') }}" @class(['active' => request()->routeIs('front.messagerie.*')]) @if(request()->routeIs('front.messagerie.*')) aria-current="page" @endif>
-                    <i data-lucide="messages-square" aria-hidden="true"></i> Messages de l'équipe
+                    <i data-lucide="messages-square" aria-hidden="true"></i> Messages
                     <span class="nav-badge" data-messagerie-badge="{{ route('front.messagerie.non-lues') }}" hidden></span>
                 </a>
             @endif

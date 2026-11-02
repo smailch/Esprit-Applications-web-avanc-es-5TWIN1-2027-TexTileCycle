@@ -8,11 +8,13 @@ use App\Modules\Messagerie\Http\Controllers\Concerns\GereFilDeDiscussion;
 use App\Modules\Messagerie\Http\Requests\StoreConversationRequest;
 use App\Modules\Messagerie\Models\Conversation;
 use App\Modules\Messagerie\Services\MessagerieService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Messagerie côté utilisateur : un citoyen (gabarit « trame ») ou le responsable
- * d'un atelier / d'une association (gabarit du back-office) échange avec l'administration.
+ * Messagerie côté utilisateur : un citoyen écrit à l'équipe TexTileCycle, à un atelier
+ * ou à une association ; le responsable d'un partenaire répond depuis son espace.
+ * Citoyen : gabarit « trame » ; atelier / association : gabarit du back-office.
  */
 class MessagerieController extends Controller
 {
@@ -39,18 +41,39 @@ class MessagerieController extends Controller
             return redirect()->route('back.messagerie.create');
         }
 
+        // Destinataire prérempli (bouton « Contacter » d'une fiche atelier) ou conservé après une erreur.
+        $valeur = (string) old('destinataire', $request->query('destinataire', ''));
+        $choisi = $valeur !== '' ? $this->messagerie->resoudreDestinataire($valeur, $request->user()) : null;
+
         return $this->vue($request, 'messagerie.create', [
             'sujet' => (string) $request->query('sujet', ''),
+            'destinataire' => $choisi ? ['valeur' => $valeur, 'nom' => $choisi['nom']] : null,
+        ]);
+    }
+
+    /** GET /messages/destinataires?q=… : suggestions (3 caractères minimum). */
+    public function destinataires(Request $request): JsonResponse
+    {
+        return response()->json([
+            'resultats' => $this->messagerie->rechercherDestinataires($request->user(), (string) $request->query('q', '')),
         ]);
     }
 
     public function store(StoreConversationRequest $request)
     {
-        $conversation = $this->messagerie->creer($request->user(), $request->user(), $request->validated());
+        $destinataire = $request->destinataire();
+        $data = $request->safe()->only(['sujet', 'message']);
+
+        if ($destinataire['contexte']) {
+            $data['contexte_type'] = class_basename($destinataire['contexte']);
+            $data['contexte_id'] = (string) $destinataire['contexte']->getKey();
+        }
+
+        $conversation = $this->messagerie->creer($request->user(), $request->user(), $data, $destinataire['partenaire']);
 
         return redirect()
             ->route('front.messagerie.show', $conversation->getKey())
-            ->with('success', "Votre message a été envoyé à l'équipe TexTileCycle.");
+            ->with('success', 'Votre message a été envoyé à '.$destinataire['nom'].'.');
     }
 
     public function show(Request $request, string $conversation)

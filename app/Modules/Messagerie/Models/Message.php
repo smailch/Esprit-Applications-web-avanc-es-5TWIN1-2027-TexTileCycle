@@ -49,14 +49,16 @@ class Message extends Model
     /**
      * Représentation JSON utilisée par le polling (messagerie.js).
      */
-    public function pourAffichage(User $lecteur): array
+    public function pourAffichage(User $lecteur, ?Conversation $conversation = null): array
     {
+        $estSupport = ! ($conversation ?? $this->conversation)?->estAvecPartenaire();
+
         return [
             'id' => (string) $this->getKey(),
             'contenu' => $this->contenu,
             'moi' => (string) $this->user_id === (string) $lecteur->getKey(),
             'cote' => $this->cote,
-            'auteur' => $this->cote === Conversation::COTE_ADMIN
+            'auteur' => $this->cote === Conversation::COTE_ADMIN && $estSupport
                 ? 'Équipe TexTileCycle'.($this->auteur ? ' · '.$this->auteur->name : '')
                 : ($this->auteur?->name ?? 'Utilisateur'),
             'heure' => $this->created_at?->format('H:i'),
