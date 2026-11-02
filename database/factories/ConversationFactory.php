@@ -42,6 +42,19 @@ class ConversationFactory extends Factory
         ];
     }
 
+    /**
+     * Échange citoyen ↔ partenaire : le responsable de l'atelier / l'association est le côté « équipe ».
+     */
+    public function avecPartenaire(Model $partenaire): static
+    {
+        return $this->surContexte($partenaire)->state([
+            'type' => Conversation::TYPE_PARTENAIRE,
+            'partenaire_id' => (string) $partenaire->user_id,
+            'admin_id' => null,
+            'initiee_par' => Conversation::COTE_UTILISATEUR,
+        ]);
+    }
+
     public function fermee(): static
     {
         return $this->state(['statut' => Conversation::STATUT_FERMEE]);
@@ -76,7 +89,9 @@ class ConversationFactory extends Factory
                 Message::factory()
                     ->for($conversation)
                     ->create([
-                        'user_id' => $cote === Conversation::COTE_ADMIN ? $conversation->admin_id : $conversation->user_id,
+                        'user_id' => $cote === Conversation::COTE_ADMIN
+                            ? ($conversation->partenaire_id ?? $conversation->admin_id)
+                            : $conversation->user_id,
                         'cote' => $cote,
                         'contenu' => $contenu,
                         'source' => $conversation->source,

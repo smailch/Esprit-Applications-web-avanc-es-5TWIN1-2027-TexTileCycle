@@ -1,6 +1,15 @@
 # Module Messagerie (Module 5 — Administration)
 
-Échanges entre **l'équipe d'administration** et les **citoyens** ou les **responsables d'ateliers et d'associations**. Il n'y a pas de messagerie entre citoyens.
+Deux types de conversation (champ `type`) :
+
+| Type | Entre | Qui répond | Rôle de l'admin |
+|---|---|---|---|
+| `support` | un utilisateur et **l'équipe d'administration** | tous les admins (boîte partagée) | participant |
+| `partenaire` | un **citoyen** et le **responsable d'un atelier ou d'une association** | le responsable du partenaire | **modération** : lecture et fermeture, sans réponse |
+
+Il n'y a pas de messagerie entre citoyens.
+
+**Démarrer une conversation (citoyen)** : *Messages → Nouveau message*. Le champ « À » propose des suggestions dès **3 caractères** (`GET /messages/destinataires?q=…`) : l'équipe TexTileCycle, les ateliers et les associations **actifs**. Le bouton **« Contacter l'atelier »** de la fiche atelier préremplit le destinataire.
 
 ## Fonctionnement
 

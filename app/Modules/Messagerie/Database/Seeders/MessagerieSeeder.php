@@ -90,6 +90,21 @@ class MessagerieSeeder extends Seeder
             $nb++;
         }
 
+        // 5. Citoyen ↔ atelier (échange direct, l'admin le voit en modération)
+        $atelierActif = Atelier::where('statut', Atelier::STATUT_ACTIF)->orderBy('created_at')->get()->first(fn ($a) => $a->user);
+        if ($citoyen && $atelierActif) {
+            Conversation::factory()
+                ->for($citoyen, 'interlocuteur')
+                ->avecPartenaire($atelierActif)
+                ->avecEchange([
+                    'Bonjour, est-ce que vous pouvez raccourcir un jean de 3 cm ? Quel serait le délai ?',
+                    'Bonjour ! Oui bien sûr, comptez 2 jours. Vous pouvez prendre rendez-vous directement depuis notre fiche.',
+                    'Parfait, merci beaucoup !',
+                ], 1)
+                ->create(['sujet' => 'Ourlet de jean', 'source' => 'seed']);
+            $nb++;
+        }
+
         $this->command?->info("{$nb} conversations de démonstration créées.");
     }
 }
