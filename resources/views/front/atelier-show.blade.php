@@ -83,6 +83,13 @@
                     Avis
                 @endif
             </a>
+            {{-- Messagerie (module 5) : non connecté → la connexion ramène ensuite au formulaire. --}}
+            @unless(auth()->user()?->isAdmin() || (string) auth()->id() === (string) $atelier->user_id)
+                <a href="{{ route('front.messagerie.create', ['destinataire' => 'atelier:'.$id, 'sujet' => 'Question pour '.$atelier->nom]) }}"
+                   class="btn btn-secondary" aria-label="Envoyer un message à {{ $atelier->nom }}">
+                    <i data-lucide="message-circle" aria-hidden="true"></i> Contacter l'atelier
+                </a>
+            @endunless
             <x-signaler cible-type="Atelier" :cible-id="(string) $atelier->getKey()" />
         </div>
     </div>

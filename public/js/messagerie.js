@@ -34,6 +34,117 @@
         setInterval(() => { if (!document.hidden) majBadges(); }, INTERVALLE_BADGE);
     }
 
+    /* ------------------------------------------------------------ recherche de destinataire */
+    const dest = document.querySelector('[data-messagerie-destinataire]');
+    if (dest) {
+        const MIN = 3;
+        const champ = dest.querySelector('[data-dest-recherche]');
+        const resultats = dest.querySelector('[data-dest-resultats]');
+        const aide = dest.querySelector('[data-dest-aide]');
+        const valeur = dest.querySelector('[data-dest-valeur]');
+        const choisi = dest.querySelector('[data-dest-choisi]');
+        const zone = dest.querySelector('[data-dest-zone]');
+        let minuterie = null;
+        let actif = -1;
+        let requete = 0;
+
+        const fermer = () => {
+            resultats.hidden = true;
+            resultats.innerHTML = '';
+            champ.setAttribute('aria-expanded', 'false');
+            actif = -1;
+        };
+
+        const choisir = (item) => {
+            valeur.value = item.valeur;
+            dest.querySelector('[data-dest-nom]').textContent = item.nom;
+            choisi.hidden = false;
+            zone.hidden = true;
+            fermer();
+        };
+
+        const surligner = (index) => {
+            const options = resultats.querySelectorAll('[role="option"]');
+            options.forEach((o, i) => o.setAttribute('aria-selected', String(i === index)));
+            actif = index;
+            champ.setAttribute('aria-activedescendant', options[index] ? options[index].id : '');
+            if (options[index]) options[index].scrollIntoView({ block: 'nearest' });
+        };
+
+        const afficher = (items) => {
+            resultats.innerHTML = '';
+            if (!items.length) {
+                aide.textContent = 'Aucun résultat. Essayez un autre nom ou « équipe ».';
+                fermer();
+                return;
+            }
+            items.forEach((item, i) => {
+                const li = document.createElement('li');
+                li.setAttribute('role', 'option');
+                li.id = `msg-dest-option-${i}`;
+                li.className = 'msg-dest__option';
+                const icone = document.createElement('i');
+                icone.dataset.lucide = item.icone;
+                const texte = document.createElement('span');
+                const nom = document.createElement('b');
+                nom.textContent = item.nom;
+                const detail = document.createElement('small');
+                detail.textContent = item.detail;
+                texte.append(nom, detail);
+                li.append(icone, texte);
+                li.addEventListener('mousedown', (e) => { e.preventDefault(); choisir(item); });
+                li._item = item;
+                resultats.appendChild(li);
+            });
+            if (window.lucide) window.lucide.createIcons();
+            resultats.hidden = false;
+            champ.setAttribute('aria-expanded', 'true');
+            aide.textContent = `${items.length} résultat(s) — flèches pour naviguer, Entrée pour choisir.`;
+            surligner(0);
+        };
+
+        champ.addEventListener('input', () => {
+            valeur.value = '';
+            clearTimeout(minuterie);
+            const q = champ.value.trim();
+            if (q.length < MIN) {
+                fermer();
+                aide.textContent = q.length ? `Encore ${MIN - q.length} caractère(s)…` : 'Exemples : « Couture », « Marsa », « équipe ».';
+                return;
+            }
+            aide.textContent = 'Recherche…';
+            minuterie = setTimeout(() => {
+                const numero = ++requete;
+                const url = new URL(dest.dataset.url, location.origin);
+                url.searchParams.set('q', q);
+                fetch(url, json)
+                    .then((r) => (r.ok ? r.json() : { resultats: [] }))
+                    .then((data) => { if (numero === requete) afficher(data.resultats || []); })
+                    .catch(() => { aide.textContent = 'La recherche est indisponible pour le moment.'; });
+            }, 250);
+        });
+
+        champ.addEventListener('keydown', (e) => {
+            const options = resultats.querySelectorAll('[role="option"]');
+            if (e.key === 'ArrowDown' && options.length) { e.preventDefault(); surligner((actif + 1) % options.length); }
+            if (e.key === 'ArrowUp' && options.length) { e.preventDefault(); surligner((actif - 1 + options.length) % options.length); }
+            if (e.key === 'Enter') {
+                e.preventDefault(); // ne pas envoyer le formulaire sans destinataire choisi
+                if (options[actif]) choisir(options[actif]._item);
+            }
+            if (e.key === 'Escape') fermer();
+        });
+        champ.addEventListener('blur', () => setTimeout(fermer, 150));
+
+        dest.querySelector('[data-dest-effacer]').addEventListener('click', () => {
+            valeur.value = '';
+            choisi.hidden = true;
+            zone.hidden = false;
+            champ.value = '';
+            champ.focus();
+        });
+    }
+
     /* ------------------------------------------------------------ fil de discussion */
     const fil = document.querySelector('[data-messagerie-fil]');
     if (!fil) return;

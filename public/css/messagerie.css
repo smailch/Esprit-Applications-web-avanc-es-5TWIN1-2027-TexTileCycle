@@ -118,3 +118,31 @@
   .msg { max-width: 88%; }
   .msg-fil__tete .row-actions { gap: 2px; }
 }
+
+/* ---------- Recherche du destinataire (nouveau message) ---------- */
+.msg-dest { position: relative; margin-bottom: 12px; }
+.msg-dest > label { margin-bottom: 7px; }
+.msg-dest__zone input {
+  display: block; width: 100%; border: 1px solid #dce6df; border-radius: 7px; padding: 10px; font: inherit; font-size: 12px; background: #fff;
+}
+.msg-dest__zone input:focus { outline: 2px solid #cfe8d3; border-color: #b9d8c0; }
+.msg-dest__aide { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
+.msg-dest__resultats {
+  position: absolute; z-index: 20; left: 0; right: 0; margin: 4px 0 0; padding: 6px; list-style: none;
+  max-height: 290px; overflow-y: auto; background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 40px #17382a26;
+}
+.msg-dest__option { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; cursor: pointer; }
+.msg-dest__option svg { width: 18px; height: 18px; color: var(--green); flex-shrink: 0; }
+.msg-dest__option span { display: grid; min-width: 0; }
+.msg-dest__option b { font-size: 13px; }
+.msg-dest__option small { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-dest__option[aria-selected="true"], .msg-dest__option:hover { background: var(--green-soft); }
+.msg-dest__choisi {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px;
+  border-radius: 999px; background: var(--green-soft); color: var(--green-dark); font-weight: 700; font-size: 13px;
+}
+.msg-dest__choisi svg { width: 16px; height: 16px; }
+.msg-dest__choisi .icon-btn { width: 26px; height: 26px; }
+.msg-avatar.est-partenaire { background: #fff3e6; color: #b8651a; }
+.msg-moderation { background: #eaf3fc; }
