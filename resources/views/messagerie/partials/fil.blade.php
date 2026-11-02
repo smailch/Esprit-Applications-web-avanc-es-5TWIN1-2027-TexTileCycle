@@ -68,8 +68,11 @@
                 @php $jour = $info['date']; @endphp
                 <li class="msg-jour" data-jour="{{ $jour }}"><span>{{ $message->created_at->isToday() ? "Aujourd'hui" : $jour }}</span></li>
             @endif
-            <li @class(['msg', 'msg--moi' => $info['moi'], 'msg--autre' => ! $info['moi']]) data-id="{{ $info['id'] }}" data-created="{{ $info['created_at'] }}">
+            <li @class(['msg', 'msg--moi' => $info['moi'], 'msg--autre' => ! $info['moi'], 'msg--bloque' => $message->bloque]) data-id="{{ $info['id'] }}" data-created="{{ $info['created_at'] }}">
                 <div class="msg__bulle">{{ $message->contenu }}</div>
+                @if($info['alerte'])
+                    <div class="msg__alerte" title="{{ $message->moderation['raison'] ?? '' }}"><i data-lucide="shield-alert" aria-hidden="true"></i> {{ $info['alerte'] }}</div>
+                @endif
                 <div class="msg__meta">
                     @unless($info['moi'])<span>{{ $info['auteur'] }} ·</span>@endunless
                     <time datetime="{{ $info['created_at'] }}">{{ $info['heure'] }}</time>
@@ -96,7 +99,21 @@
                       placeholder="Écrire un message… (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)"
                       @class(['is-invalid' => $errors->has('contenu')])>{{ old('contenu') }}</textarea>
             <button type="submit" class="btn btn-primary" aria-label="Envoyer"><i data-lucide="send" aria-hidden="true"></i></button>
-            <p class="error-text" data-messagerie-erreur @if(! $errors->has('contenu')) hidden @endif>{{ $errors->first('contenu') }}</p>
+            <input type="hidden" name="confirmer" value="0" data-messagerie-confirmer>
+            <p class="error-text" data-messagerie-erreur @if(! $errors->has('contenu') || session('moderation.verdict') === 'avertir') hidden @endif>{{ $errors->first('contenu') }}</p>
+
+            {{-- Avertissement de la modération IA : l'auteur modifie son message ou confirme l'envoi. --}}
+            <div class="msg-moderation-alerte" data-messagerie-avertissement role="alert" @unless(session('moderation.verdict') === 'avertir') hidden @endunless>
+                <i data-lucide="shield-alert" aria-hidden="true"></i>
+                <div>
+                    <b>Vérification avant envoi</b>
+                    <p data-messagerie-avertissement-texte>{{ session('moderation.raison') }}</p>
+                    <div class="row-actions">
+                        <button type="button" class="btn btn-secondary small" data-messagerie-modifier>Modifier mon message</button>
+                        <button type="submit" name="confirmer" value="1" class="btn btn-primary small" data-messagerie-envoyer-quand-meme>Envoyer quand même</button>
+                    </div>
+                </div>
+            </div>
         </form>
     @else
         <p class="msg-ferme" data-messagerie-ferme>

@@ -61,6 +61,13 @@
                 <textarea name="message" rows="7" maxlength="2000" @class(['is-invalid' => $errors->has('message')]) required>{{ old('message') }}</textarea>
                 @error('message')<span class="error-text">{{ $message }}</span>@enderror
             </label>
+
+            @if(session('moderation.verdict') === 'avertir')
+                <label class="span-2 check msg-confirmer">
+                    <input type="checkbox" name="confirmer" value="1">
+                    Je confirme vouloir envoyer ce message tel quel.
+                </label>
+            @endif
         </div>
 
         <div class="form-actions">

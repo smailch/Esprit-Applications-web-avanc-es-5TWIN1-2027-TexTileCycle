@@ -69,7 +69,13 @@ class MessagerieController extends Controller
             $data['contexte_id'] = (string) $destinataire['contexte']->getKey();
         }
 
-        $conversation = $this->messagerie->creer($request->user(), $request->user(), $data, $destinataire['partenaire']);
+        // Modération IA du premier message : un message bloqué n'ouvre pas de conversation.
+        $moderation = $this->moderer($request->user(), $data['message']);
+        if ($refus = $this->refusModeration($request, $moderation, 'message', fn () => null)) {
+            return $refus;
+        }
+
+        $conversation = $this->messagerie->creer($request->user(), $request->user(), $data, $destinataire['partenaire'], $moderation);
 
         return redirect()
             ->route('front.messagerie.show', $conversation->getKey())

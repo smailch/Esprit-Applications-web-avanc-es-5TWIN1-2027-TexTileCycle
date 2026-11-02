@@ -62,7 +62,11 @@ class Signalement extends Model
         'Association' => ['collection' => 'associations', 'label' => 'nom', 'type' => self::TYPE_CONTENU, 'nom' => 'Association'],
         'Don' => ['collection' => 'dons', 'label' => 'message', 'type' => self::TYPE_ANNONCE, 'nom' => 'Don'],
         'User' => ['collection' => 'users', 'label' => 'name', 'type' => self::TYPE_UTILISATEUR, 'nom' => 'Utilisateur'],
+        'Message' => ['collection' => 'messages', 'label' => 'contenu', 'type' => self::TYPE_CONTENU, 'nom' => 'Message'],
     ];
+
+    /** Signalement créé automatiquement par la modération IA (pas d'auteur humain). */
+    public const SOURCE_IA = 'ia';
 
     protected $connection = 'mongodb';
 
@@ -79,6 +83,8 @@ class Signalement extends Model
         'traite_par',
         'traite_le',
         'source',
+        'meta',
+        'triage',
     ];
 
     protected $casts = [
@@ -126,6 +132,16 @@ class Signalement extends Model
             ->with('auteur')
             ->orderBy('created_at', 'desc')
             ->get();
+    }
+
+    public function estAutomatique(): bool
+    {
+        return $this->source === self::SOURCE_IA;
+    }
+
+    public function auteurLabel(): string
+    {
+        return $this->estAutomatique() ? 'Modération automatique (IA)' : ($this->auteur?->name ?? 'Compte supprimé');
     }
 
     public function cibleLabel(): string

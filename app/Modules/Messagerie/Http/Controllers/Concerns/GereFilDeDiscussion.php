@@ -4,6 +4,7 @@ namespace App\Modules\Messagerie\Http\Controllers\Concerns;
 
 use App\Modules\Messagerie\Http\Requests\EnvoyerMessageRequest;
 use App\Modules\Messagerie\Models\Conversation;
+use App\Modules\Messagerie\Services\ModerationMessageService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ trait GereFilDeDiscussion
         $this->authorize('view', $model);
 
         $apres = rescue(fn () => $request->filled('apres') ? Carbon::parse($request->query('apres')) : null, null, false);
-        $messages = $this->messagerie->messages($model, $apres);
+        $messages = $this->messagerie->messages($model, $apres, $request->user());
 
         if ($model->nonLusPour($request->user()) > 0) {
             $this->messagerie->marquerLue($model, $request->user());
@@ -53,7 +54,14 @@ trait GereFilDeDiscussion
                 : back()->withErrors(['contenu' => $erreur]);
         }
 
-        $message = $this->messagerie->envoyer($model, $request->user(), $request->validated('contenu'));
+        $contenu = $request->validated('contenu');
+        $moderation = $this->moderer($request->user(), $contenu);
+
+        if ($refus = $this->refusModeration($request, $moderation, 'contenu', fn () => $this->messagerie->envoyer($model, $request->user(), $contenu, $moderation))) {
+            return $refus;
+        }
+
+        $message = $this->messagerie->envoyer($model, $request->user(), $contenu, $moderation);
 
         return $request->expectsJson()
             ? response()->json(['message' => $message->load('auteur')->pourAffichage($request->user(), $model)], 201)
@@ -64,6 +72,48 @@ trait GereFilDeDiscussion
     public function nonLues(Request $request): JsonResponse
     {
         return response()->json(['non_lues' => $this->messagerie->nonLues($request->user())]);
+    }
+
+    /**
+     * Analyse IA du message avant envoi. Les messages de l'administration ne sont pas modérés.
+     */
+    protected function moderer(\App\Modules\Auth\Models\User $auteur, string $contenu): ?array
+    {
+        return $auteur->isAdmin() ? null : app(ModerationMessageService::class)->analyser($contenu);
+    }
+
+    /**
+     * Réponse à renvoyer si la modération refuse le message, null sinon.
+     *  - bloquer : le message est conservé comme preuve (via $conserver) puis refusé ;
+     *  - avertir : refusé tant que l'auteur n'a pas coché / cliqué « Envoyer quand même » (champ confirmer).
+     */
+    protected function refusModeration(Request $request, ?array $moderation, string $champ, callable $conserver)
+    {
+        $verdict = $moderation['verdict'] ?? ModerationMessageService::OK;
+
+        if ($verdict === ModerationMessageService::OK
+            || ($verdict === ModerationMessageService::AVERTIR && $request->boolean('confirmer'))) {
+            return null;
+        }
+
+        if ($verdict === ModerationMessageService::BLOQUER) {
+            $conserver();
+            $texte = 'Message non envoyé : '.$moderation['raison'].' Il a été transmis à l\'équipe de modération.';
+        } else {
+            $texte = $moderation['raison'].' Modifiez votre message ou confirmez l\'envoi.';
+        }
+
+        $details = [
+            'verdict' => $verdict,
+            'raison' => $moderation['raison'],
+            'categories' => ModerationMessageService::libelleCategories($moderation['categories']),
+        ];
+
+        return $request->expectsJson()
+            ? response()->json(['message' => $texte, 'errors' => [$champ => [$texte]], 'moderation' => $details], 422)
+            : back()->withInput($verdict === ModerationMessageService::BLOQUER ? $request->except($champ) : $request->input())
+                ->withErrors([$champ => $texte])
+                ->with('moderation', $details);
     }
 
     protected function trouver(string $id): Conversation
@@ -78,7 +128,7 @@ trait GereFilDeDiscussion
 
         return [
             'conversation' => $conversation,
-            'messages' => $this->messagerie->messages($conversation),
+            'messages' => $this->messagerie->messages($conversation, null, $request->user()),
             'peutRepondre' => $request->user()->can('repondre', $conversation),
         ];
     }

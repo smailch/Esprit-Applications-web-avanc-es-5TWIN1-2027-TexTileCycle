@@ -20,6 +20,7 @@ class EnvoyerMessageRequest extends FormRequest
     {
         return [
             'contenu' => ['required', 'string', 'max:2000'],
+            'confirmer' => ['nullable', 'boolean'],
         ];
     }
 

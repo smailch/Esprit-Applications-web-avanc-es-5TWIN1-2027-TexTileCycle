@@ -22,7 +22,7 @@
                     document.querySelectorAll(`[data-messagerie-badge="${url}"]`).forEach((b) => {
                         b.textContent = data.non_lues > 99 ? '99+' : String(data.non_lues);
                         b.hidden = data.non_lues === 0;
-                        b.setAttribute('aria-label', `${data.non_lues} conversation(s) non lue(s)`);
+                        b.setAttribute('aria-label', `${data.non_lues} élément(s) à traiter`);
                     });
                 })
                 .catch(() => {});
@@ -182,7 +182,7 @@
         }
 
         const li = document.createElement('li');
-        li.className = `msg ${m.moi ? 'msg--moi' : 'msg--autre'} est-nouveau`;
+        li.className = `msg ${m.moi ? 'msg--moi' : 'msg--autre'}${m.bloque ? ' msg--bloque' : ''} est-nouveau`;
         li.dataset.id = m.id;
         li.dataset.created = m.created_at;
 
@@ -202,7 +202,15 @@
         heure.textContent = m.heure;
         meta.appendChild(heure);
 
-        li.append(bulle, meta);
+        li.append(bulle);
+        if (m.alerte) {
+            // Badge de la modération IA (reçu uniquement par l'administration).
+            const alerte = document.createElement('div');
+            alerte.className = 'msg__alerte';
+            alerte.textContent = `⚠ ${m.alerte}`;
+            li.appendChild(alerte);
+        }
+        li.appendChild(meta);
         liste.insertBefore(li, fin);
 
         if (m.created_at > dernier) dernier = m.created_at;
@@ -271,13 +279,42 @@
         }
     });
 
+    /* Modération IA : avertissement (modifier / envoyer quand même) ou blocage. */
+    const avertissement = form.querySelector('[data-messagerie-avertissement]');
+    const avertissementTexte = form.querySelector('[data-messagerie-avertissement-texte]');
+    const confirmer = form.querySelector('[data-messagerie-confirmer]');
+
+    const masquerAvertissement = () => {
+        avertissement.hidden = true;
+        avertissement.classList.remove('est-bloque');
+    };
+
+    const afficherModeration = (moderation, texte) => {
+        avertissementTexte.textContent = moderation.verdict === 'bloquer' ? texte : moderation.raison;
+        avertissement.querySelector('b').textContent = moderation.verdict === 'bloquer'
+            ? 'Message bloqué par la modération'
+            : 'Vérification avant envoi';
+        avertissement.classList.toggle('est-bloque', moderation.verdict === 'bloquer');
+        avertissement.hidden = false;
+        if (window.lucide) window.lucide.createIcons();
+    };
+
+    form.querySelector('[data-messagerie-modifier]').addEventListener('click', () => {
+        masquerAvertissement();
+        zone.focus();
+    });
+    zone.addEventListener('input', () => { if (!avertissement.classList.contains('est-bloque')) masquerAvertissement(); });
+
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         const contenu = zone.value.trim();
         if (!contenu) { zone.focus(); return; }
 
-        const bouton = form.querySelector('button[type="submit"]');
-        bouton.disabled = true;
+        // « Envoyer quand même » : le bouton cliqué n'est pas inclus par new FormData(form).
+        confirmer.value = e.submitter && e.submitter.hasAttribute('data-messagerie-envoyer-quand-meme') ? '1' : '0';
+
+        const boutons = form.querySelectorAll('button[type="submit"]');
+        boutons.forEach((b) => { b.disabled = true; });
         erreur.hidden = true;
 
         fetch(form.action, {
@@ -290,8 +327,14 @@
                 if (!r.ok) {
                     const texte = (data.errors && data.errors.contenu && data.errors.contenu[0])
                         || (r.status === 429 ? 'Trop de messages envoyés, patientez une minute.' : 'Le message n\'a pas pu être envoyé.');
+                    if (data.moderation) {
+                        afficherModeration(data.moderation, texte);
+                        if (data.moderation.verdict === 'bloquer') { zone.value = ''; ajusterHauteur(); }
+                        return;
+                    }
                     throw new Error(texte);
                 }
+                masquerAvertissement();
                 ajouter(data.message);
                 majAccuse();
                 zone.value = '';
@@ -303,7 +346,8 @@
                 erreur.hidden = false;
             })
             .finally(() => {
-                bouton.disabled = false;
+                confirmer.value = '0';
+                boutons.forEach((b) => { b.disabled = false; });
                 zone.focus();
             });
     });

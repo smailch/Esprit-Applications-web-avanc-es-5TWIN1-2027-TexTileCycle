@@ -101,7 +101,7 @@
   padding: 10px 12px; font: inherit; font-size: 13px; line-height: 1.45; background: var(--surface);
 }
 .msg-saisie textarea:focus { outline: 2px solid #cfe8d3; border-color: #b9d8c0; background: #fff; }
-.msg-saisie .btn { height: 42px; width: 46px; justify-content: center; padding: 0; }
+.msg-saisie > .btn { height: 42px; width: 46px; justify-content: center; padding: 0; }
 .msg-saisie .btn[disabled] { opacity: .6; cursor: wait; }
 .msg-saisie .error-text { grid-column: 1 / -1; margin: 0; }
 .msg-ferme { display: flex; align-items: center; gap: 8px; margin: 0; padding: 14px 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; background: var(--surface); }
@@ -146,3 +146,26 @@
 .msg-dest__choisi .icon-btn { width: 26px; height: 26px; }
 .msg-avatar.est-partenaire { background: #fff3e6; color: #b8651a; }
 .msg-moderation { background: #eaf3fc; }
+
+/* ---------- Modération IA ---------- */
+.msg__alerte {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; padding: 3px 8px; border-radius: 999px;
+  background: #fff3e6; color: #8a4a12; font-size: 10px; font-weight: 700;
+}
+.msg__alerte svg { width: 12px; height: 12px; }
+.msg--bloque .msg__bulle { background: #fdecea !important; color: #8b1c1c !important; border: 1px dashed #e57373; text-decoration: line-through; text-decoration-color: #e5737380; }
+.msg--bloque .msg__alerte { background: #fdecea; color: #b71c1c; }
+.msg-moderation-alerte {
+  grid-column: 1 / -1; display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 12px;
+  background: #fff8ec; border: 1px solid #f3c79a; color: #6b3a0b;
+}
+.msg-moderation-alerte > svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--orange); }
+.msg-moderation-alerte b { display: block; font-size: 13px; }
+.msg-moderation-alerte p { display: block; margin: 2px 0 10px; font-size: 12px; line-height: 1.5; color: inherit; }
+.msg-moderation-alerte.est-bloque { background: #fdecea; border-color: #ef9a9a; color: #7f1d1d; }
+.msg-moderation-alerte.est-bloque > svg { color: #c62828; }
+.msg-moderation-alerte.est-bloque .row-actions { display: none; }
+.msg-confirmer { margin-top: 4px; }
+.msg-moderation-alerte > div { flex: 1; min-width: 0; }
+.msg-moderation-alerte .row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.msg-moderation-alerte .btn { width: auto; height: auto; padding: 7px 14px; white-space: nowrap; }

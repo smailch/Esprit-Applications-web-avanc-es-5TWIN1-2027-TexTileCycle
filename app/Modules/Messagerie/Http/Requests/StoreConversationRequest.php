@@ -33,6 +33,7 @@ class StoreConversationRequest extends FormRequest
             'destinataire' => ['required', 'string', 'max:80'],
             'sujet' => ['required', 'string', 'min:3', 'max:150'],
             'message' => ['required', 'string', 'max:2000'],
+            'confirmer' => ['nullable', 'boolean'],
         ];
     }
 

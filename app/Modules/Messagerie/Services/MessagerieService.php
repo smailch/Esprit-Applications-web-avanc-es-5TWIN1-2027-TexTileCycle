@@ -7,6 +7,7 @@ use App\Modules\Ateliers\Models\Atelier;
 use App\Modules\Auth\Models\User;
 use App\Modules\Messagerie\Models\Conversation;
 use App\Modules\Messagerie\Models\Message;
+use App\Modules\Signalements\Models\Signalement;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -87,7 +88,7 @@ class MessagerieService
     /**
      * @param  User|null  $partenaire  responsable de l'atelier / l'association contacté (échange citoyen ↔ partenaire)
      */
-    public function creer(User $auteur, User $interlocuteur, array $data, ?User $partenaire = null): Conversation
+    public function creer(User $auteur, User $interlocuteur, array $data, ?User $partenaire = null, ?array $moderation = null): Conversation
     {
         $conversation = Conversation::create([
             'type' => $partenaire ? Conversation::TYPE_PARTENAIRE : Conversation::TYPE_SUPPORT,
@@ -103,23 +104,36 @@ class MessagerieService
                 : Conversation::COTE_ADMIN,
         ]);
 
-        $this->envoyer($conversation, $auteur, $data['message']);
+        $this->envoyer($conversation, $auteur, $data['message'], $moderation);
 
         return $conversation->fresh();
     }
 
-    public function envoyer(Conversation $conversation, User $auteur, string $contenu): Message
+    /**
+     * @param  array|null  $moderation  résultat de ModerationMessageService::analyser()
+     */
+    public function envoyer(Conversation $conversation, User $auteur, string $contenu, ?array $moderation = null): Message
     {
         $cote = $conversation->cotePour($auteur)
             ?? throw new \LogicException('Cet utilisateur ne participe pas à la conversation.');
         $contenu = trim($contenu);
+        $bloque = ($moderation['verdict'] ?? null) === ModerationMessageService::BLOQUER;
 
-        $message = Message::create([
+        $message = Message::create(array_filter([
             'conversation_id' => (string) $conversation->getKey(),
             'user_id' => (string) $auteur->getKey(),
             'cote' => $cote,
             'contenu' => $contenu,
-        ]);
+            'moderation' => ($moderation['verdict'] ?? ModerationMessageService::OK) !== ModerationMessageService::OK ? $moderation : null,
+            'bloque' => $bloque ?: null,
+        ], fn ($v) => $v !== null));
+
+        // Message bloqué : conservé comme preuve pour l'administration, jamais remis au destinataire.
+        if ($bloque) {
+            $this->signalerMessageBloque($message, $conversation, $auteur, $moderation);
+
+            return $message;
+        }
 
         // L'expéditeur a forcément lu le fil ; le destinataire a un message de plus à lire.
         $conversation->fill([
@@ -159,13 +173,50 @@ class MessagerieService
      *
      * @return Collection<int, Message>
      */
-    public function messages(Conversation $conversation, ?Carbon $apres = null): Collection
+    public function messages(Conversation $conversation, ?Carbon $apres = null, ?User $lecteur = null): Collection
     {
         return $conversation->messages()
             ->with('auteur')
+            // Les messages bloqués par la modération ne sont visibles que par l'administration.
+            ->when(! $lecteur?->isAdmin(), fn ($q) => $q->where('bloque', '!=', true))
             ->when($apres, fn ($q) => $q->where('created_at', '>', $apres))
             ->orderBy('created_at')
             ->get();
+    }
+
+    /**
+     * Signalement automatique d'un message bloqué (un seul par auteur et par 24 h).
+     */
+    private function signalerMessageBloque(Message $message, Conversation $conversation, User $auteur, array $moderation): void
+    {
+        $dejaSignale = Signalement::where('source', Signalement::SOURCE_IA)
+            ->where('statut', Signalement::STATUT_EN_ATTENTE)
+            ->where('meta.auteur_message_id', (string) $auteur->getKey())
+            ->where('created_at', '>=', now()->subDay())
+            ->exists();
+
+        if ($dejaSignale) {
+            return;
+        }
+
+        $signalement = Signalement::create([
+            'user_id' => null,
+            'type' => Signalement::TYPE_CONTENU,
+            'cible_type' => 'Message',
+            'cible_id' => (string) $message->getKey(),
+            'motif' => 'Message bloqué automatiquement par la modération IA ('
+                .ModerationMessageService::libelleCategories($moderation['categories'] ?? []).'). '
+                .($moderation['raison'] ?? ''),
+            'statut' => Signalement::STATUT_EN_ATTENTE,
+            'source' => Signalement::SOURCE_IA,
+            'meta' => [
+                'conversation_id' => (string) $conversation->getKey(),
+                'auteur_message_id' => (string) $auteur->getKey(),
+                'moderation' => $moderation,
+            ],
+        ]);
+
+        app(\App\Modules\Signalements\Services\SignalementService::class)->programmerTriage($signalement);
     }
 
     public function supprimer(Conversation $conversation): void

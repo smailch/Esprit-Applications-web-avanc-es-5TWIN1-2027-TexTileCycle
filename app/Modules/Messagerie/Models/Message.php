@@ -3,6 +3,7 @@
 namespace App\Modules\Messagerie\Models;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Messagerie\Services\ModerationMessageService;
 use Database\Factories\MessageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,10 +22,13 @@ class Message extends Model
         'user_id',
         'cote',
         'contenu',
+        'moderation',
+        'bloque',
         'source',
     ];
 
     protected $casts = [
+        'bloque' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -64,6 +68,25 @@ class Message extends Model
             'heure' => $this->created_at?->format('H:i'),
             'date' => $this->created_at?->locale('fr')->isoFormat('D MMMM YYYY'),
             'created_at' => $this->created_at?->format('Y-m-d\TH:i:s.vP'),
+            // Alerte de la modération IA : visible uniquement par l'administration.
+            'alerte' => $lecteur->isAdmin() ? $this->alerteModeration() : null,
+            'bloque' => (bool) $this->bloque,
         ];
+    }
+
+    public function estSignaleParIa(): bool
+    {
+        return in_array($this->moderation['verdict'] ?? null, ['avertir', 'bloquer'], true);
+    }
+
+    /** Ex. « Bloqué par l'IA : Insulte » / « Signalé par l'IA : Coordonnées personnelles ». */
+    public function alerteModeration(): ?string
+    {
+        if (! $this->estSignaleParIa()) {
+            return null;
+        }
+
+        return ($this->bloque ? "Bloqué par l'IA" : "Signalé par l'IA").' : '
+            .ModerationMessageService::libelleCategories($this->moderation['categories'] ?? []);
     }
 }

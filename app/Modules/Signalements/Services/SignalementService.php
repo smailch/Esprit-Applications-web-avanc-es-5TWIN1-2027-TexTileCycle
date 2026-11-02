@@ -24,6 +24,8 @@ class SignalementService
             ->when($filters['statut'] ?? null, fn ($q, $statut) => $q->where('statut', $statut))
             ->when($filters['type'] ?? null, fn ($q, $type) => $q->where('type', $type))
             ->when($filters['cible_type'] ?? null, fn ($q, $cible) => $q->where('cible_type', $cible))
+            // Tri « priorité IA » : les plus graves d'abord (les signalements non analysés à la fin).
+            ->when(($filters['tri'] ?? null) === 'priorite', fn ($q) => $q->orderBy('triage.gravite', 'desc'))
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->withQueryString();
@@ -52,14 +54,30 @@ class SignalementService
 
     public function create(array $data, User $auteur): Signalement
     {
-        return Signalement::create([
+        return $this->programmerTriage(Signalement::create([
             'user_id' => (string) $auteur->getKey(),
             'type' => $data['type'] ?? Signalement::CIBLES[$data['cible_type']]['type'],
             'cible_type' => $data['cible_type'],
             'cible_id' => (string) $data['cible_id'],
             'motif' => $data['motif'],
             'statut' => Signalement::STATUT_EN_ATTENTE,
-        ]);
+        ]));
+    }
+
+    /**
+     * Triage IA lancé après l'envoi de la réponse : l'auteur n'attend pas l'IA.
+     */
+    public function programmerTriage(Signalement $signalement): Signalement
+    {
+        $id = (string) $signalement->getKey();
+
+        dispatch(function () use ($id) {
+            if ($signalement = Signalement::find($id)) {
+                app(TriageSignalementService::class)->trier($signalement);
+            }
+        })->afterResponse();
+
+        return $signalement;
     }
 
     public function update(Signalement $signalement, array $data, User $admin): Signalement
@@ -88,7 +106,8 @@ class SignalementService
         $options = [];
 
         foreach (Signalement::CIBLES as $alias => $config) {
-            $classe = Relation::getMorphedModel($alias);
+            // Les messages sont signalés automatiquement par la modération IA, pas depuis ce formulaire.
+            $classe = $alias === 'Message' ? null : Relation::getMorphedModel($alias);
 
             if (! $classe) {
                 continue;
@@ -163,6 +182,9 @@ class SignalementService
             'Association' => $this->partenaires->changerStatut('association', $signalement->cible_id, PartenaireService::STATUT_SUSPENDU)
                 ? 'Association suspendue.' : null,
             'User' => $this->desactiverUtilisateur($signalement->cible_id, $admin),
+            'Message' => ($message = $signalement->cibleDocument())
+                ? $this->desactiverUtilisateur((string) $message['user_id'], $admin)
+                : null,
             default => null,
         };
     }
