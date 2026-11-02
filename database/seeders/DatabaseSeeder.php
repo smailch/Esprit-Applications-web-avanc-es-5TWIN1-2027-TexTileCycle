@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             \App\Modules\Signalements\Database\Seeders\SignalementSeeder::class,
             \App\Modules\Statistiques\Database\Seeders\HistoriqueStatistiquesSeeder::class,
+            \App\Modules\Messagerie\Database\Seeders\MessagerieSeeder::class,
         ]);
     }
 }
