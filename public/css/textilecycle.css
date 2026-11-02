@@ -2401,3 +2401,12 @@ span.icon-btn.notification {
 .besoins-ia__actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .besoins-ia__message { font-size: 13px; color: var(--muted); }
 .besoins-ia__texte { display: block; width: 100%; min-height: 120px; box-sizing: border-box; padding: 12px 14px; font: inherit; line-height: 1.5; resize: vertical; }
+
+/* Badge de messages non lus (menu back-office et navigation citoyen, mis à jour par js/messagerie.js) */
+.nav-badge {
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px;
+  margin-left: auto; border-radius: 999px; background: #c62828; color: #fff;
+  font-size: 10px; font-weight: 800; line-height: 1;
+}
+.nav-badge[hidden] { display: none; }
+.tr-liens .nav-badge { margin-left: 4px; vertical-align: middle; }

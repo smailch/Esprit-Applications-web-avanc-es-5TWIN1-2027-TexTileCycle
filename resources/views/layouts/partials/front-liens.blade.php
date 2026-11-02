@@ -8,6 +8,11 @@
     <a href="{{ route('front.passeports') }}" @class(['active' => request()->routeIs('front.passeports')]) @if(request()->routeIs('front.passeports')) aria-current="page" @endif>Passeports</a>
     <a href="{{ route('front.dons') }}" @class(['active' => request()->routeIs('front.dons')]) @if(request()->routeIs('front.dons')) aria-current="page" @endif>Dons</a>
     <a href="{{ route('front.signalements.index') }}" @class(['active' => request()->routeIs('front.signalements.*')]) @if(request()->routeIs('front.signalements.*')) aria-current="page" @endif>Mes signalements</a>
+    @unless(auth()->user()->isAdmin())
+        <a href="{{ route('front.messagerie.index') }}" @class(['active' => request()->routeIs('front.messagerie.*')]) @if(request()->routeIs('front.messagerie.*')) aria-current="page" @endif>
+            Messages <span class="nav-badge" data-messagerie-badge="{{ route('front.messagerie.non-lues') }}" hidden></span>
+        </a>
+    @endunless
     @if(auth()->user()->isCitoyen())
         <a href="{{ route('front.profil') }}" @class(['active' => request()->routeIs('front.profil')]) @if(request()->routeIs('front.profil')) aria-current="page" @endif>Profil</a>
     @endif
