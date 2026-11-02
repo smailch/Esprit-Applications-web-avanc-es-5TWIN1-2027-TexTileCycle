@@ -138,7 +138,7 @@ class PartenaireService
 
         $owners = [];
         foreach ($users as $user) {
-            $owners[(string) $user['_id']] = ['name' => $user['name'] ?? '', 'email' => $user['email'] ?? ''];
+            $owners[(string) $user['_id']] = ['id' => (string) $user['_id'], 'name' => $user['name'] ?? '', 'email' => $user['email'] ?? ''];
         }
 
         return $owners;

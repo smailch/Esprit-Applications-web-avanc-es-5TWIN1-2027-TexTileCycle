@@ -78,6 +78,8 @@
                             @if($p['owner'])
                                 {{ $p['owner']['name'] }}
                                 <span class="cell-sub">{{ $p['owner']['email'] }}</span>
+                                <a href="{{ route('back.messagerie.create', ['user' => $p['owner']['id'], 'contexte_type' => $type === 'atelier' ? 'Atelier' : 'Association', 'contexte_id' => $p['id'], 'sujet' => ($type === 'atelier' ? 'Votre atelier « ' : 'Votre association « ').$p['nom'].' »']) }}"
+                                   class="link-button"><i data-lucide="message-circle" aria-hidden="true"></i> Contacter</a>
                             @else
                                 <span class="cell-sub">Compte introuvable</span>
                             @endif

@@ -53,6 +53,10 @@
                     @if($signalement->auteur)
                         <b>{{ $signalement->auteur->name }}</b> · {{ $signalement->auteur->email }}
                         <span class="cell-sub">{{ $signalement->auteur->roleLabel() }}</span>
+                        @unless($signalement->auteur->isAdmin())
+                            <a href="{{ route('back.messagerie.create', ['user' => $signalement->auteur->getKey(), 'contexte_type' => 'Signalement', 'contexte_id' => $signalement->getKey(), 'sujet' => 'Votre signalement : '.$signalement->cibleLabel()]) }}"
+                               class="link-button"><i data-lucide="message-circle" aria-hidden="true"></i> Contacter l'auteur</a>
+                        @endunless
                     @else
                         <span class="muted">Compte supprimé</span>
                     @endif
