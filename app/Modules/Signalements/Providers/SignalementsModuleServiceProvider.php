@@ -18,11 +18,16 @@ class SignalementsModuleServiceProvider extends ServiceProvider
         'Association' => 'App\Modules\Associations\Models\Association',
         'Don' => 'App\Modules\Dons\Models\Don',
         'User' => 'App\Modules\Auth\Models\User',
+        'Message' => 'App\Modules\Messagerie\Models\Message',
     ];
 
     public function boot(): void
     {
         $this->loadMigrationsFrom(app_path('Modules/Signalements/Database/Migrations'));
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([\App\Modules\Signalements\Console\TrierSignalements::class]);
+        }
 
         Relation::morphMap(array_filter(
             array_intersect_key(self::MORPH_CANDIDATES, Signalement::CIBLES),

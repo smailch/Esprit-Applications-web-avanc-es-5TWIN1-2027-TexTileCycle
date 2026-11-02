@@ -9,6 +9,7 @@ use App\Modules\Signalements\Http\Requests\Back\StoreSignalementRequest;
 use App\Modules\Signalements\Http\Requests\Back\UpdateSignalementRequest;
 use App\Modules\Signalements\Models\Signalement;
 use App\Modules\Signalements\Services\SignalementService;
+use App\Modules\Signalements\Services\TriageSignalementService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -23,13 +24,14 @@ class SignalementController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->only(['statut', 'type', 'cible_type']);
+        $filters = $request->only(['statut', 'type', 'cible_type', 'tri']);
 
         return $this->backView('back.signalements.index', [
             'pageTitle' => 'Signalements',
             'filters' => $filters,
             'signalements' => $this->signalements->paginate($filters),
             'counts' => $this->signalements->countsByStatut(),
+            'nonAnalyses' => Signalement::where('statut', Signalement::STATUT_EN_ATTENTE)->whereNull('triage')->count(),
         ]);
     }
 
@@ -106,6 +108,32 @@ class SignalementController extends Controller
         $message = $data['statut'] === Signalement::STATUT_TRAITE ? 'Signalement traité.' : 'Signalement rejeté.';
 
         return back()->with('success', trim($message.' '.$sanction));
+    }
+
+    /** GET /admin/signalements/compteur : signalements en attente (badge rouge du menu). */
+    public function compteur()
+    {
+        return response()->json(['non_lues' => Signalement::where('statut', Signalement::STATUT_EN_ATTENTE)->count()]);
+    }
+
+    /** Lance (ou relance) le triage IA d'un signalement. */
+    public function analyser(string $signalement, TriageSignalementService $triage)
+    {
+        $resultat = $triage->trier(Signalement::findOrFail($signalement));
+
+        return back()->with('success', 'Analyse IA terminée : gravité '.$resultat['gravite'].'/5, '
+            .mb_strtolower(TriageSignalementService::DECISIONS[$resultat['decision']]).' suggéré'
+            .($resultat['source'] === 'local' ? ' (analyse locale, IA indisponible).' : '.'));
+    }
+
+    /** Triage IA des signalements en attente pas encore analysés (par lots de 10). */
+    public function analyserEnAttente(TriageSignalementService $triage)
+    {
+        $nb = $triage->trierEnAttente(10);
+
+        return back()->with('success', $nb
+            ? "{$nb} signalement(s) analysé(s) par l'IA."
+            : 'Tous les signalements en attente sont déjà analysés.');
     }
 
     public function destroy(string $signalement)

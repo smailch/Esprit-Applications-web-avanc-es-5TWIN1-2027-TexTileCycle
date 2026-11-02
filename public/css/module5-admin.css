@@ -103,3 +103,28 @@ details.action-menu[open] .action-body { margin-top: 10px; }
   .form-card-grid .span-2 { grid-column: auto; }
   .detail-list { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* ---------- Triage IA des signalements ---------- */
+.ia-gravite { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.ia-gravite--danger { background: #fdecea; color: #b71c1c; }
+.ia-gravite--orange { background: #fff3e6; color: #b8651a; }
+.ia-gravite--blue { background: #eaf3fc; color: #2f6fad; }
+.ia-gravite--green { background: var(--green-soft); color: var(--green-dark); }
+.ia-triage { margin-bottom: 16px; border-color: #d8cdf3; background: linear-gradient(160deg, #fbf9ff, #fff); }
+.ia-triage__tete { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ia-triage__tete h2 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 16px; }
+.ia-triage__tete h2 svg { width: 16px; height: 16px; color: var(--purple); }
+.ia-triage__gravite { display: flex; align-items: center; gap: 10px; margin: 12px 0 8px; }
+.ia-jauge { display: flex; gap: 3px; }
+.ia-jauge span { width: 18px; height: 8px; border-radius: 4px; background: var(--line); }
+.ia-jauge span.est-pleine { background: var(--orange); }
+.ia-triage__liste { display: grid; grid-template-columns: 110px 1fr; gap: 8px 12px; margin: 8px 0; font-size: 12px; }
+.ia-triage__liste dt { color: var(--muted); font-weight: 700; }
+.ia-triage__liste dd { margin: 0; }
+.ia-doublon { display: flex !important; align-items: center; gap: 4px; color: var(--purple) !important; }
+.ia-doublon svg { width: 12px; height: 12px; }
+.ia-note { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #fff; border: 1px dashed #d8cdf3; }
+.ia-note p { margin: 4px 0 8px; font-size: 12px; line-height: 1.5; }
+.ia-triage__source { margin: 10px 0 0; font-size: 10px; color: var(--muted); }
+.ia-suggere { box-shadow: 0 0 0 3px #d8cdf3; }
+.chip svg { width: 13px; height: 13px; }

@@ -25,7 +25,19 @@
                 </a>
             @endforeach
         </div>
-        <a href="{{ route('back.signalements.create') }}" class="btn btn-primary small"><i data-lucide="plus"></i> Nouveau signalement</a>
+        <div class="row-actions">
+            <a href="{{ route('back.signalements.index', array_merge($filters, ['tri' => ($filters['tri'] ?? null) === 'priorite' ? null : 'priorite'])) }}"
+               @class(['chip', 'active' => ($filters['tri'] ?? null) === 'priorite'])>
+                <i data-lucide="sparkles" aria-hidden="true"></i> Plus graves d'abord
+            </a>
+            @if($nonAnalyses)
+                <form method="post" action="{{ route('back.signalements.analyser-en-attente') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-secondary small"><i data-lucide="bot" aria-hidden="true"></i> Analyser {{ $nonAnalyses }} signalement(s) avec l'IA</button>
+                </form>
+            @endif
+            <a href="{{ route('back.signalements.create') }}" class="btn btn-primary small"><i data-lucide="plus"></i> Nouveau signalement</a>
+        </div>
     </div>
 
     <form method="get" class="inline-form panel" style="padding:14px 16px;margin-bottom:14px">
@@ -64,6 +76,7 @@
                     <th scope="col">Type</th>
                     <th scope="col">Motif</th>
                     <th scope="col">Auteur</th>
+                    <th scope="col">Priorité IA</th>
                     <th scope="col">Statut</th>
                     <th scope="col">Actions</th>
                 </tr>
@@ -78,7 +91,18 @@
                         </td>
                         <td>{{ $signalement->typeLabel() }}</td>
                         <td class="motif">{{ \Illuminate\Support\Str::limit($signalement->motif, 90) }}</td>
-                        <td>{{ $signalement->auteur?->name ?? 'Compte supprimé' }}</td>
+                        <td>{{ $signalement->auteurLabel() }}</td>
+                        <td>
+                            @if($t = $signalement->triage)
+                                <span class="ia-gravite ia-gravite--{{ \App\Modules\Signalements\Services\TriageSignalementService::toneGravite($t['gravite']) }}"
+                                      title="{{ \App\Modules\Signalements\Services\TriageSignalementService::libelleCategorie($t['categorie']) }}">
+                                    {{ $t['priorite'] }} · {{ $t['gravite'] }}/5
+                                </span>
+                                <span class="cell-sub">{{ \App\Modules\Signalements\Services\TriageSignalementService::libelleCategorie($t['categorie']) }}@if(! empty($t['doublons'])) · {{ count($t['doublons']) }} doublon(s)@endif</span>
+                            @else
+                                <span class="cell-sub">Non analysé</span>
+                            @endif
+                        </td>
                         <td><x-status-badge :tone="$signalement->statutTone()">{{ $signalement->statutLabel() }}</x-status-badge></td>
                         <td>
                             <div class="row-actions">
@@ -96,7 +120,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="empty">Aucun signalement pour ces critères.</td>
+                        <td colspan="8" class="empty">Aucun signalement pour ces critères.</td>
                     </tr>
                 @endforelse
             </tbody>

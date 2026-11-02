@@ -57,6 +57,9 @@
                             <a href="{{ route('back.messagerie.create', ['user' => $signalement->auteur->getKey(), 'contexte_type' => 'Signalement', 'contexte_id' => $signalement->getKey(), 'sujet' => 'Votre signalement : '.$signalement->cibleLabel()]) }}"
                                class="link-button"><i data-lucide="message-circle" aria-hidden="true"></i> Contacter l'auteur</a>
                         @endunless
+                    @elseif($signalement->estAutomatique())
+                        <b><i data-lucide="bot" aria-hidden="true"></i> {{ $signalement->auteurLabel() }}</b>
+                        <span class="cell-sub">Créé automatiquement : message bloqué avant d'être remis au destinataire.</span>
                     @else
                         <span class="muted">Compte supprimé</span>
                     @endif
@@ -64,8 +67,21 @@
 
                 <dt>Élément signalé</dt>
                 <dd>
-                    <b>{{ $signalement->cibleLabel() }}</b>
-                    <span class="cell-sub">{{ $signalement->cibleNom() }} · {{ $signalement->cible_id }}</span>
+                    @if($signalement->cible_type === 'Message' && $cible)
+                        <blockquote class="msg-preuve">{{ $cible->contenu }}</blockquote>
+                        <span class="cell-sub">
+                            Écrit par <b>{{ $cible->auteur?->name ?? 'compte supprimé' }}</b> ({{ $cible->auteur?->email }})
+                            le {{ $cible->created_at?->format('d/m/Y à H:i') }}
+                            @if($cible->alerteModeration()) · {{ $cible->alerteModeration() }} @endif
+                        </span>
+                        @if($cible->moderation['raison'] ?? null)
+                            <span class="cell-sub">Analyse : {{ $cible->moderation['raison'] }}</span>
+                        @endif
+                        <a href="{{ route('back.messagerie.show', $cible->conversation_id) }}" class="link-button">Voir la conversation <i data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+                    @else
+                        <b>{{ $signalement->cibleLabel() }}</b>
+                        <span class="cell-sub">{{ $signalement->cibleNom() }} · {{ $signalement->cible_id }}</span>
+                    @endif
                     @if($cible && $signalement->cible_type === 'Atelier')
                         <span class="cell-sub">{{ $cible->adresse }} {{ $cible->ville }} · statut : {{ $cible->statutLabel() }}</span>
                     @elseif($cible && $signalement->cible_type === 'Association')
@@ -96,6 +112,8 @@
         </div>
 
         <div>
+            @include('back.signalements._triage')
+
             @if($signalement->estEnAttente())
                 <form method="post" action="{{ route('back.signalements.moderer', $signalement->getKey()) }}" class="panel detail-card action-body">
                     @csrf
@@ -105,10 +123,14 @@
                         <textarea name="note_admin" rows="3" @class(['is-invalid' => $errors->has('note_admin')])>{{ old('note_admin') }}</textarea>
                         @error('note_admin')<span class="error-text">{{ $message }}</span>@enderror
                     </label>
-                    @if(in_array($signalement->cible_type, ['Atelier', 'Association', 'User'], true))
+                    @if(in_array($signalement->cible_type, ['Atelier', 'Association', 'User', 'Message'], true))
                         <label class="check">
-                            <input type="checkbox" name="sanctionner" value="1" @checked(old('sanctionner'))>
-                            {{ $signalement->cible_type === 'User' ? 'Désactiver le compte signalé' : 'Suspendre le partenaire signalé' }}
+                            <input type="checkbox" name="sanctionner" value="1" @checked(old('sanctionner')) data-ia-sanction>
+                            {{ match ($signalement->cible_type) {
+                                'User' => 'Désactiver le compte signalé',
+                                'Message' => "Désactiver le compte de l'auteur du message",
+                                default => 'Suspendre le partenaire signalé',
+                            } }}
                         </label>
                     @endif
                     <div class="row-actions">
@@ -123,7 +145,7 @@
                 @forelse($autres as $autre)
                     <a href="{{ route('back.signalements.show', $autre->getKey()) }}" class="mini-row">
                         <span>
-                            <b>{{ $autre->auteur?->name ?? 'Compte supprimé' }}</b>
+                            <b>{{ $autre->auteurLabel() }}</b>
                             <span class="cell-sub">{{ \Illuminate\Support\Str::limit($autre->motif, 70) }}</span>
                         </span>
                         <x-status-badge :tone="$autre->statutTone()">{{ $autre->statutLabel() }}</x-status-badge>
