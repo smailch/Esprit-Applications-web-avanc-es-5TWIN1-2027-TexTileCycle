@@ -20,7 +20,7 @@ class RoleNavigationService
             ['label' => 'Dons', 'route' => 'back.dons', 'icon' => 'gift', 'module' => 'Dons'],
             ['label' => 'Associations', 'route' => 'back.associations', 'icon' => 'heart-handshake', 'module' => 'Associations'],
             ['label' => 'Partenaires', 'route' => 'back.partenaires.index', 'icon' => 'badge-check', 'module' => 'Partenaires'],
-            ['label' => 'Signalements', 'route' => 'back.signalements.index', 'icon' => 'circle-alert', 'module' => 'Signalements'],
+            ['label' => 'Signalements', 'route' => 'back.signalements.index', 'icon' => 'circle-alert', 'module' => 'Signalements', 'badge' => 'back.signalements.compteur'],
             ['label' => 'Statistiques & impact', 'route' => 'back.statistiques.index', 'icon' => 'bar-chart-3', 'module' => 'Statistiques'],
             ['label' => 'Messagerie', 'route' => 'back.messagerie.index', 'icon' => 'messages-square', 'module' => 'Messagerie', 'badge' => 'back.messagerie.non-lues'],
             ['label' => 'Utilisateurs', 'route' => 'back.users.index', 'icon' => 'users', 'module' => 'Auth'],
